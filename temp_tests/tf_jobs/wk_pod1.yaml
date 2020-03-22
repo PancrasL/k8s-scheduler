@@ -15,10 +15,10 @@ spec:
         resources:
           requests:
             memory: "800M"
-            cpu: "1950m"
+            cpu: "500m"
           limits:
             memory: "800M"
-            cpu: "1950m"
+            cpu: "500m"
         ports:
         - containerPort: 2222
         command: ["/bin/sh", "-c"]
