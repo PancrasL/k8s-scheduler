@@ -53,7 +53,7 @@ def load_cluster_status(cluster_index):
     
     # 获取待调度的pod
     load_pod_to_be_scheduled(cluster_index)
-    pprint(pod_to_be_scheduled)                
+    # pprint(pod_to_be_scheduled)                
 
 def load_exist_pod_resources_request():
     global exist_pod_resources_request
