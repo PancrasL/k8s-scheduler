@@ -14,10 +14,10 @@ spec:
         image: tensorflow/tensorflow:1.1.0
         resources:
           requests:
-            memory: "800M"
+            memory: "400M"
             cpu: "500m"
           limits:
-            memory: "800M"
+            memory: "400M"
             cpu: "500m"
         ports:
         - containerPort: 2222
