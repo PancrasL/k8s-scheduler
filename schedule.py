@@ -11,7 +11,8 @@ import yaml
 
 # 其他模块
 import resource
-from utils import convert_resource_unit
+from utils import convert_resource_unit, trans_dict_to_list
+from algorithm import determine_schedule_or_not, most_suitable_schedule
 
 # debug utils
 from pprint import pprint
@@ -32,6 +33,8 @@ node_allocatable_resources={}   # node_available_resources-exist_pod_resources_r
 #                     'resources': {'cpu_request': 500.0,
 #                                   'memory_request': 800000000.0}}
 pod_to_be_scheduled={}
+# key: pod_name value:meta_data
+pods_meta_data={}
 
 #加载集群信息
 def load_cluster_status(cluster_index):
@@ -39,6 +42,7 @@ def load_cluster_status(cluster_index):
     global node_available_resources
     global node_allocatable_resources
     global pod_to_be_scheduled
+    global pods_meta_data
 
     # 集群认证
     config.load_kube_config("/root/.kube/config")
@@ -56,7 +60,7 @@ def load_cluster_status(cluster_index):
     # pprint(node_allocatable_resources)
     
     # 获取待调度的pod
-    pod_to_be_scheduled = resource.load_pod_to_be_scheduled(tf_yaml_dir, cluster_index, exist_pod_resources_request)
+    pod_to_be_scheduled, pods_meta_data = resource.load_pod_to_be_scheduled(tf_yaml_dir, cluster_index, exist_pod_resources_request)
     pprint(pod_to_be_scheduled)                
 
 
@@ -67,11 +71,10 @@ if __name__ == '__main__':
     # 加载集群状态
     load_cluster_status("")
 
-    # # 判断当前集群能否容纳下调度来的tf集群
-    # pod_list, node_allocatable_resources_list = pre_process(pod_to_be_scheduled, node_allocatable_resources)
-    # #print "pod_list =", pod_list, "node_allocatable_resources_list =", node_allocatable_resources_list
-    # hashtable = {}
-    # determination = determine_schedule_or_not(0, pod_list, node_allocatable_resources_list, hashtable)
-    # #print "determination =", determination
-
-    # most_suitable_schedule()
+    # 判断当前集群能否容纳下调度来的tf集群
+    pod_list, node_allocatable_resources_list = trans_dict_to_list(pod_to_be_scheduled, node_allocatable_resources)
+    #print "pod_list =", pod_list, "node_allocatable_resources_list =", node_allocatable_resources_list
+    hashtable = {}
+    determination = determine_schedule_or_not(0, pod_list, node_allocatable_resources_list, hashtable)
+    #print "determination =", determination
+    most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be_scheduled)

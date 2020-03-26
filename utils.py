@@ -52,3 +52,14 @@ def convert_resource_unit(resource_type, resource):
         logging.error("Unknown Resource Type!!! Return 0!!!")
         return 0
 
+# 将字典变为列表
+def trans_dict_to_list(pod_to_be_scheduled, node_allocatable_resources):
+    pod_list = []
+    node_allocatable_resources_list = []
+    for pod in pod_to_be_scheduled:
+        # pod_list.append({"cpu_request": pod_to_be_scheduled[pod]["resources"]["cpu_request"], "memory_request":pod_to_be_scheduled[pod]["resources"]["memory_request"]})
+        pod_list.append([pod_to_be_scheduled[pod]["resources"]["cpu_request"], pod_to_be_scheduled[pod]["resources"]["memory_request"]])
+    for node in node_allocatable_resources:
+        # node_allocatable_resources_list.append({"cpu": node_allocatable_resources[node]["cpu"], "memory": node_allocatable_resources[node]["memory"]})
+        node_allocatable_resources_list.append([node_allocatable_resources[node]["cpu"], node_allocatable_resources[node]["memory"]])
+    return pod_list, node_allocatable_resources_list

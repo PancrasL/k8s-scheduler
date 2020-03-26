@@ -120,4 +120,4 @@ def load_pod_to_be_scheduled(tf_yaml_dir, cluster_index, exist_pod_resources_req
                     except Exception, e:
                         pass 
 
-    return pod_to_be_scheduled
+    return pod_to_be_scheduled, pods_meta_data
