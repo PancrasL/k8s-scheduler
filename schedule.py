@@ -1,13 +1,6 @@
 # coding:utf-8
 
 import sys
-import logging
-import requests
-import string
-import copy
-import os
-from os import path
-import yaml
 
 # 其他模块
 import resource
@@ -27,14 +20,15 @@ exist_pod_resources_request = {}
 # key: node_name value: resources{}
 node_available_resources = {}
 #key: node_name value: resources{}
-node_allocatable_resources={}   # node_available_resources-exist_pod_resources_request
+node_allocatable_resources = {}  # node_available_resources-exist_pod_resources_request
 #key: pod_name value: {resources{}}
 # eg:{'tf-ps-1-2-0': {'pod_yaml_file': '/root/my_scheduler/temp_tests/tf_jobs/ps_pod0.yaml',
 #                     'resources': {'cpu_request': 500.0,
 #                                   'memory_request': 800000000.0}}
-pod_to_be_scheduled={}
+pod_to_be_scheduled = {}
 # key: pod_name value:meta_data
-pods_meta_data={}
+pods_meta_data = {}
+
 
 #加载集群信息
 def load_cluster_status(cluster_index):
@@ -58,10 +52,10 @@ def load_cluster_status(cluster_index):
     # 扣除已分配的资源，计算剩余可分配资源
     node_allocatable_resources = resource.load_node_allocatable_resources(node_available_resources, exist_pod_resources_request)
     # pprint(node_allocatable_resources)
-    
+
     # 获取待调度的pod
     pod_to_be_scheduled, pods_meta_data = resource.load_pod_to_be_scheduled(tf_yaml_dir, cluster_index, exist_pod_resources_request)
-    pprint(pod_to_be_scheduled)                
+    pprint(pod_to_be_scheduled)
 
 
 if __name__ == '__main__':
@@ -71,7 +65,7 @@ if __name__ == '__main__':
     # 加载集群状态
     load_cluster_status("")
 
-    # 判断当前集群能否容纳下调度来的tf集群
+    # 判断当前集群能否容纳待调度的tf集群
     pod_list, node_allocatable_resources_list = trans_dict_to_list(pod_to_be_scheduled, node_allocatable_resources)
     #print "pod_list =", pod_list, "node_allocatable_resources_list =", node_allocatable_resources_list
     hashtable = {}

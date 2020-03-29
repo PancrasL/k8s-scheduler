@@ -5,6 +5,7 @@ import os, yaml, logging, copy
 from kubernetes import client
 from utils import convert_resource_unit
 
+
 def load_exist_pod_resources_request():
     # key: pod_name value: {nodeName:nodeName, resources{}}
     exist_pod_resources_request = {}
@@ -38,8 +39,9 @@ def load_exist_pod_resources_request():
         else:
             logging.error(item.metadata.name, item.status.phase, "pod " + item.metadata.name + " is deleted")
             # api_core_v1.delete_namespaced_pod(item.metadata.name, item.metadata.namespace)
-    
+
     return exist_pod_resources_request
+
 
 def load_node_available_resources():
     # key: node_name value: resources{}
@@ -55,36 +57,38 @@ def load_node_available_resources():
         }
     return node_available_resources
 
+
 def load_node_allocatable_resources(node_available_resources, exist_pod_resources_request):
     #key: node_name value: resources{}
-    node_allocatable_resources={}   # node_available_resources-exist_pod_resources_request
+    node_allocatable_resources = {}  # node_available_resources-exist_pod_resources_request
 
     node_allocatable_resources = copy.deepcopy(node_available_resources)
     for exist_pod in exist_pod_resources_request:
         node_name = exist_pod_resources_request[exist_pod]["node_name"]
         node_allocatable_resources[node_name]["cpu"] -= exist_pod_resources_request[exist_pod]["resources"]["cpu_request"]
         node_allocatable_resources[node_name]["memory"] -= exist_pod_resources_request[exist_pod]["resources"]["memory_request"]
-    
+
     return node_allocatable_resources
+
 
 def load_pod_to_be_scheduled(tf_yaml_dir, cluster_index, exist_pod_resources_request):
     # key: pod_name value:meta_data
-    pods_meta_data={}
+    pods_meta_data = {}
     # 保存描述任务的yaml文件路径
-    pod_yaml_files=[]
+    pod_yaml_files = []
     #key: pod_name value: {resources{}}
-    pod_to_be_scheduled={}
+    pod_to_be_scheduled = {}
 
     # 遍历所有的yaml文件
-    for files in os.listdir(tf_yaml_dir+cluster_index):
-        pod_yaml_files.append(tf_yaml_dir+cluster_index+'/'+files)
-    
+    for files in os.listdir(tf_yaml_dir + cluster_index):
+        pod_yaml_files.append(tf_yaml_dir + cluster_index + '/' + files)
+
     for pod_yaml_file in pod_yaml_files:
         with open(os.path.join(os.path.dirname(__file__), pod_yaml_file)) as f:
             pod_meta_data = yaml.load(f, Loader=yaml.FullLoader)
-            
+
             #pprint(pod_meta_data)
-            pod_name=pod_meta_data["metadata"]["name"]
+            pod_name = pod_meta_data["metadata"]["name"]
             pod_exist_flag = False
             for exist_pod in exist_pod_resources_request:
                 if pod_name == exist_pod[:-6]:
@@ -94,20 +98,21 @@ def load_pod_to_be_scheduled(tf_yaml_dir, cluster_index, exist_pod_resources_req
                 try:
                     pods_meta_data[pod_name] = pod_meta_data
                     containers = pod_meta_data["spec"]["template"]["spec"]["containers"]
-                    all_container_in_pod_requests={"cpu_request":0, "memory_request":0}
+                    all_container_in_pod_requests = {"cpu_request": 0, "memory_request": 0}
                     for container in containers:
                         try:
-                            all_container_in_pod_requests["cpu_request"]+=convert_resource_unit("cpu", container["resources"]["requests"]["cpu"])
+                            all_container_in_pod_requests["cpu_request"] += convert_resource_unit("cpu", container["resources"]["requests"]["cpu"])
                         #处理container中不含有request的问题
                         except Exception, e:
                             pass
                         try:
-                            all_container_in_pod_requests["memory_request"]+=convert_resource_unit("memory", container["resources"]["requests"]["memory"])
+                            all_container_in_pod_requests["memory_request"] += convert_resource_unit("memory",
+                                                                                                     container["resources"]["requests"]["memory"])
                         #处理container中不含有request的问题
                         except Exception, e:
                             pass
                     # 这里的pod_yaml_file指的是yaml文件的 file_path 路径
-                    pod_to_be_scheduled[pod_name]={"resources": all_container_in_pod_requests, "pod_yaml_file": pod_yaml_file}
+                    pod_to_be_scheduled[pod_name] = {"resources": all_container_in_pod_requests, "pod_yaml_file": pod_yaml_file}
 
                 #service 类型的yaml文件，同样需要创建
                 except Exception, e:
@@ -118,6 +123,6 @@ def load_pod_to_be_scheduled(tf_yaml_dir, cluster_index, exist_pod_resources_req
                         #pprint(pod_meta_data)
                         #api_instance.create_namespaced_service(body=pod_meta_data, namespace="default")
                     except Exception, e:
-                        pass 
+                        pass
 
     return pod_to_be_scheduled, pods_meta_data
