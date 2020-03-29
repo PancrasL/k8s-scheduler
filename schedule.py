@@ -1,11 +1,13 @@
 # coding:utf-8
 
 import sys
+import memcache
+import logging
 
 # 其他模块
 import resource
 from utils import convert_resource_unit, trans_dict_to_list
-from algorithm import determine_schedule_or_not, most_suitable_schedule
+from algorithm import determine_schedule_or_not, most_suitable_schedule, k8s_schedule
 
 # debug utils
 from pprint import pprint
@@ -62,13 +64,34 @@ if __name__ == '__main__':
     argvs = sys.argv
     pprint(argvs)
 
+    cluster_index = ""
+    schedule_model = ""
+    # 连接到memcache服务器
+    shared_memory = memcache.Client(['127.0.0.1:11211'], debug=0)
+
     # 加载集群状态
-    load_cluster_status("")
+    load_cluster_status(cluster_index)
 
     # 判断当前集群能否容纳待调度的tf集群
     pod_list, node_allocatable_resources_list = trans_dict_to_list(pod_to_be_scheduled, node_allocatable_resources)
     #print "pod_list =", pod_list, "node_allocatable_resources_list =", node_allocatable_resources_list
     hashtable = {}
     determination = determine_schedule_or_not(0, pod_list, node_allocatable_resources_list, hashtable)
-    #print "determination =", determination
-    most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be_scheduled)
+
+    if determination:
+        if schedule_model == "kubernetes":
+            k8s_schedule(tf_yaml_dir, cluster_index)
+        elif schedule_model == "suitable":
+            most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be_scheduled)
+        else:
+            logging.error("unsupported schedule model!! Supported model: 'kubernetes' 'suitable'")
+    else:
+        to_be_scheduled_queue = shared_memory.get("to_be_scheduled_queue")
+        if not to_be_scheduled_queue:
+            to_be_scheduled_queue = []
+        to_be_scheduled_pods = {"pods_yaml_file_path": tf_yaml_dir + cluster_index + "/", "pods_requests": pod_to_be_scheduled, "cluster_index": cluster_index, "schedule_model": schedule_model}
+        to_be_scheduled_queue.append(to_be_scheduled_pods)
+        shared_memory.set("to_be_scheduled_queue", to_be_scheduled_queue)
+        
+    # 主调度过程执行完成，将标志位置成0
+    shared_memory.set("schedule_flag", 0)

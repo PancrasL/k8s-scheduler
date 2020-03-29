@@ -1,6 +1,8 @@
 # coding:utf-8
 
-import copy
+import copy, sys, os
+import yaml
+import logging
 from kubernetes import config, client
 
 
@@ -132,6 +134,26 @@ def most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be
         else:
             pod_packer = copy.deepcopy(pod_packer[:-1])
     print "Done......"
+
+
+#k8s's default schedule algorithm
+def k8s_schedule(tf_yaml_dir, cluster_index):
+    sys_ret = os.system("kubectl create -f " + tf_yaml_dir + cluster_index + "/")
+    if sys_ret:
+        logging.error("create pods " + tf_yaml_dir + cluster_index + " failed!!! Can't create these pods!!!")
+        sys.exit(2)
+    # 等待一个文件夹中所有的job创建完成为止
+    for yaml_file_str in os.listdir(tf_yaml_dir + cluster_index + "/"):
+        if "pod" in yaml_file_str:
+            with open(tf_yaml_dir + cluster_index + "/" + yaml_file_str) as f:
+                yaml_description = yaml.load(f)
+                config.load_kube_config()
+                # 注意创建job对应的版本是BatchV1Api
+                api_instance = client.BatchV1Api()
+                while True:
+                    resp = api_instance.read_namespaced_job(name=yaml_description["metadata"]["name"], namespace='default')
+                    if resp.status.active == 1:
+                        break
 
 
 # 将pod 调度到node上面，执行绑定过程
