@@ -10,19 +10,19 @@ from kubernetes import config, client
 # 需要注意的是，对于指定的tf集群而言，只有当所有的wk节点被调度之后，整个集群才能正常工作
 # 这是一个对 多个二维背包问题的 求解，将每个node节点看成二维背包，分别为CPU资源和内存资源，对每个节点进行二维背包求解，假如所有解集的并集包括tf所有节点，则可以进行调度，否则不能
 # todo:需要求全解的解集，使用暴力回溯法求解
-def determine_schedule_or_not(kth, pod_list, node_allocatable_resources_list, hashtable):
+def determine_schedule_or_not(kth, pod_request_resources_list, node_allocatable_resources_list, hashtable):
     flag = 0
-    if (kth >= len(pod_list)):
+    if (kth >= len(pod_request_resources_list)):
         return 1
 
     for i in range(len(node_allocatable_resources_list)):
-        if node_allocatable_resources_list[i][0] >= pod_list[kth][0] and node_allocatable_resources_list[i][1] >= pod_list[kth][1]:
+        if node_allocatable_resources_list[i][0] >= pod_request_resources_list[kth][0] and node_allocatable_resources_list[i][1] >= pod_request_resources_list[kth][1]:
             hashtable[tuple(tuple(l1) for l1 in node_allocatable_resources_list)] = 1
-            node_allocatable_resources_list[i][0] -= pod_list[kth][0]
-            node_allocatable_resources_list[i][1] -= pod_list[kth][1]
-            flag = determine_schedule_or_not(kth + 1, pod_list, node_allocatable_resources_list, hashtable)
-            node_allocatable_resources_list[i][0] += pod_list[kth][0]
-            node_allocatable_resources_list[i][1] += pod_list[kth][1]
+            node_allocatable_resources_list[i][0] -= pod_request_resources_list[kth][0]
+            node_allocatable_resources_list[i][1] -= pod_request_resources_list[kth][1]
+            flag = determine_schedule_or_not(kth + 1, pod_request_resources_list, node_allocatable_resources_list, hashtable)
+            node_allocatable_resources_list[i][0] += pod_request_resources_list[kth][0]
+            node_allocatable_resources_list[i][1] += pod_request_resources_list[kth][1]
         else:
             hashtable[tuple(tuple(l1) for l1 in node_allocatable_resources_list)] = -1
 
@@ -34,25 +34,30 @@ def most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be
     #todo: need a better way to deal with pod_max_cpu=0 or pod_max_memory=0,because they are divisor
     pod_max_cpu = 0.000001
     pod_max_memory = 0.000001
-    pod_cpu_ratio = 0.5
-    pod_memory_ratio = 0.5
+    pod_cpu_ratio = 1/2
+    pod_memory_ratio = 1/2
 
-    #将pod和node的设置的比例值相同，没毛病
-    node_cpu_ratio = 0.5
-    node_memory_ratio = 0.5
+    #将cpu和memory的资源比例值相同
+    node_cpu_ratio = 1/2
+    node_memory_ratio = 1/2
     pod_to_be_scheduled_list = []
     pod_score = {}
 
+
     #队列构成方式：首先是ps，之后是按资源需求升序的wk
+
+    #资源归'1'化处理
     for pod in pod_to_be_scheduled:
         if pod_to_be_scheduled[pod]["resources"]["cpu_request"] > pod_max_cpu:
             pod_max_cpu = pod_to_be_scheduled[pod]["resources"]["cpu_request"]
         if pod_to_be_scheduled[pod]["resources"]["memory_request"] > pod_max_memory:
             pod_max_memory = pod_to_be_scheduled[pod]["resources"]["memory_request"]
+
     for pod in pod_to_be_scheduled:
         pod_score[pod] = pod_to_be_scheduled[pod]["resources"]["cpu_request"] / pod_max_cpu * pod_cpu_ratio + pod_to_be_scheduled[pod]["resources"][
             "memory_request"] / pod_max_memory * pod_memory_ratio
     pod_score = sorted(pod_score.iteritems(), key=lambda dic: dic[1], reverse=False)
+    
     for pod in pod_score:
         #专门针对tensorflow框架
         if pod[0][:5] == "tf-ps":
@@ -66,8 +71,8 @@ def most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be
     #考虑两种情况：1.没有可以完全容纳下所有pod的节点，需要做的是首先选取一个最大的节点(尽可能多地)将待创建pod列表前面的pod创建，之后再将剩余的pod选择合适的节点
     #2.直接存在多个可以容纳所有pod的节点，需要选择一个最接近所有pod使用资源的节点
     pod_packer = copy.deepcopy(pod_to_be_scheduled_list)
-    #schedule method
-    while pod_to_be_scheduled_list:
+    #schedule method  
+    while pod_to_be_scheduled_list:  
         remain_pod_cpu_request = 0
         remain_pod_memory_request = 0
         abundant_resource_node = {}

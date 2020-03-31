@@ -6,7 +6,7 @@ import logging
 
 # 其他模块
 import resource
-from utils import convert_resource_unit, trans_dict_to_list
+from utils import convert_resource_unit, get_resources_list
 from algorithm import determine_schedule_or_not, most_suitable_schedule, k8s_schedule
 
 # debug utils
@@ -64,8 +64,8 @@ if __name__ == '__main__':
     argvs = sys.argv
     pprint(argvs)
 
-    cluster_index = ""
-    schedule_model = ""
+    cluster_index = "1"
+    schedule_model = "suitable"
     # 连接到memcache服务器
     shared_memory = memcache.Client(['127.0.0.1:11211'], debug=0)
 
@@ -73,10 +73,10 @@ if __name__ == '__main__':
     load_cluster_status(cluster_index)
 
     # 判断当前集群能否容纳待调度的tf集群
-    pod_list, node_allocatable_resources_list = trans_dict_to_list(pod_to_be_scheduled, node_allocatable_resources)
-    #print "pod_list =", pod_list, "node_allocatable_resources_list =", node_allocatable_resources_list
+    pod_request_resources_list, node_allocatable_resources_list = get_resources_list(pod_to_be_scheduled, node_allocatable_resources)
+    #print "pod_request_resources_list =", pod_request_resources_list, "node_allocatable_resources_list =", node_allocatable_resources_list
     hashtable = {}
-    determination = determine_schedule_or_not(0, pod_list, node_allocatable_resources_list, hashtable)
+    determination = determine_schedule_or_not(0, pod_request_resources_list, node_allocatable_resources_list, hashtable)
 
     if determination:
         if schedule_model == "kubernetes":

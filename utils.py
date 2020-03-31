@@ -53,7 +53,7 @@ def convert_resource_unit(resource_type, resource):
         return 0
 
 # 将字典变为列表
-def trans_dict_to_list(pod_to_be_scheduled, node_allocatable_resources):
+def get_resources_list(pod_to_be_scheduled, node_allocatable_resources):
     pod_list = []
     node_allocatable_resources_list = []
     for pod in pod_to_be_scheduled:
