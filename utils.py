@@ -63,3 +63,4 @@ def get_resources_list(pod_to_be_scheduled, node_allocatable_resources):
         # node_allocatable_resources_list.append({"cpu": node_allocatable_resources[node]["cpu"], "memory": node_allocatable_resources[node]["memory"]})
         node_allocatable_resources_list.append([node_allocatable_resources[node]["cpu"], node_allocatable_resources[node]["memory"]])
     return pod_list, node_allocatable_resources_list
+

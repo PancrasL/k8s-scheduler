@@ -29,24 +29,22 @@ def determine_schedule_or_not(kth, pod_request_resources_list, node_allocatable_
     return flag
 
 
-#schedule pods to suitable nodes
+#最适资源调度策略
 def most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be_scheduled):
     #todo: need a better way to deal with pod_max_cpu=0 or pod_max_memory=0,because they are divisor
     pod_max_cpu = 0.000001
     pod_max_memory = 0.000001
-    pod_cpu_ratio = 1/2
-    pod_memory_ratio = 1/2
+    pod_cpu_ratio = 1/2.0
+    pod_memory_ratio = 1/2.0
 
     #将cpu和memory的资源比例值相同
-    node_cpu_ratio = 1/2
-    node_memory_ratio = 1/2
+    node_cpu_ratio = 1/2.0
+    node_memory_ratio = 1/2.0
     pod_to_be_scheduled_list = []
     pod_score = {}
 
 
-    #队列构成方式：首先是ps，之后是按资源需求升序的wk
-
-    #资源归'1'化处理
+    #以最大资源量为基准，以便将资源归'1'化处理
     for pod in pod_to_be_scheduled:
         if pod_to_be_scheduled[pod]["resources"]["cpu_request"] > pod_max_cpu:
             pod_max_cpu = pod_to_be_scheduled[pod]["resources"]["cpu_request"]
@@ -58,6 +56,7 @@ def most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be
             "memory_request"] / pod_max_memory * pod_memory_ratio
     pod_score = sorted(pod_score.iteritems(), key=lambda dic: dic[1], reverse=False)
     
+    #队列构成方式：首先是ps，之后是按资源需求升序的wk
     for pod in pod_score:
         #专门针对tensorflow框架
         if pod[0][:5] == "tf-ps":
@@ -140,8 +139,11 @@ def most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be
             pod_packer = copy.deepcopy(pod_packer[:-1])
     print "Done......"
 
+#贪心调度策略
+def greedy_schedule():
+    return
 
-#k8s's default schedule algorithm
+#k8s的默认调度策略
 def k8s_schedule(tf_yaml_dir, cluster_index):
     sys_ret = os.system("kubectl create -f " + tf_yaml_dir + cluster_index + "/")
     if sys_ret:

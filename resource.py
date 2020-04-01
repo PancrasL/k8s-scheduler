@@ -71,7 +71,7 @@ def load_node_allocatable_resources(node_available_resources, exist_pod_resource
     return node_allocatable_resources
 
 
-def load_pod_to_be_scheduled(tf_yaml_dir, cluster_index, exist_pod_resources_request):
+def load_pod_to_be_scheduled(yaml_dir, exist_pod_resources_request):
     # key: pod_name value:meta_data
     pods_meta_data = {}
     # 保存描述任务的yaml文件路径
@@ -80,8 +80,8 @@ def load_pod_to_be_scheduled(tf_yaml_dir, cluster_index, exist_pod_resources_req
     pod_to_be_scheduled = {}
 
     # 遍历所有的yaml文件
-    for files in os.listdir(tf_yaml_dir + cluster_index):
-        pod_yaml_files.append(tf_yaml_dir + cluster_index + '/' + files)
+    for files in os.listdir(yaml_dir):
+        pod_yaml_files.append(yaml_dir + '/' + files)
 
     for pod_yaml_file in pod_yaml_files:
         with open(os.path.join(os.path.dirname(__file__), pod_yaml_file)) as f:

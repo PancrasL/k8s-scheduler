@@ -6,8 +6,9 @@ import logging
 
 # 其他模块
 import resource
+import lock
 from utils import convert_resource_unit, get_resources_list
-from algorithm import determine_schedule_or_not, most_suitable_schedule, k8s_schedule
+from algorithm import determine_schedule_or_not, most_suitable_schedule, k8s_schedule, greedy_schedule
 
 # debug utils
 from pprint import pprint
@@ -15,7 +16,10 @@ from pprint import pprint
 # kubernetes API
 from kubernetes import client, config
 
-tf_yaml_dir = "/root/my_scheduler/temp_tests/tf_jobs"
+tf_yaml_dir = "/root/my_scheduler/temp_tests/tf_jobs/"
+
+# 连接到memcache服务器
+shared_memory = memcache.Client(['127.0.0.1:11211'], debug=0)
 
 # key: pod_name value: {nodeName:nodeName, resources{}}
 exist_pod_resources_request = {}
@@ -56,8 +60,38 @@ def load_cluster_status(cluster_index):
     # pprint(node_allocatable_resources)
 
     # 获取待调度的pod
-    pod_to_be_scheduled, pods_meta_data = resource.load_pod_to_be_scheduled(tf_yaml_dir, cluster_index, exist_pod_resources_request)
-    pprint(pod_to_be_scheduled)
+    pod_to_be_scheduled, pods_meta_data = resource.load_pod_to_be_scheduled(tf_yaml_dir + cluster_index, exist_pod_resources_request)
+    
+    #pprint(pod_to_be_scheduled)
+
+
+#集群调度
+def schedule(schedule_model):
+    if schedule_model == "kubernetes":
+        k8s_schedule(tf_yaml_dir, cluster_index)
+    elif schedule_model == "greedy":
+        greedy_schedule()
+    elif schedule_model == "suitable":
+        most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be_scheduled)
+    else:
+        logging.error("unsupported schedule model!! Supported model: 'kubernetes' 'suitable' 'greedy'")
+
+
+#当前资源不足，将待调度任务加入到队列中
+def add_to_schedule_queue(schedule_model, yaml_file_path):
+    global shared_memory
+    
+    to_be_scheduled_queue = shared_memory.get("to_be_scheduled_queue")
+    if not to_be_scheduled_queue:
+        to_be_scheduled_queue = []
+    to_be_scheduled_pods = {
+        "pods_yaml_file_path": yaml_file_path,
+        "pods_requests": pod_to_be_scheduled,
+        "cluster_index": cluster_index,
+        "schedule_model": schedule_model
+    }
+    to_be_scheduled_queue.append(to_be_scheduled_pods)
+    shared_memory.set("to_be_scheduled_queue", to_be_scheduled_queue)
 
 
 if __name__ == '__main__':
@@ -66,8 +100,9 @@ if __name__ == '__main__':
 
     cluster_index = "1"
     schedule_model = "suitable"
-    # 连接到memcache服务器
-    shared_memory = memcache.Client(['127.0.0.1:11211'], debug=0)
+
+    # 加锁
+    lock.start_schedule(shared_memory)
 
     # 加载集群状态
     load_cluster_status(cluster_index)
@@ -78,20 +113,11 @@ if __name__ == '__main__':
     hashtable = {}
     determination = determine_schedule_or_not(0, pod_request_resources_list, node_allocatable_resources_list, hashtable)
 
+    # 执行调度
     if determination:
-        if schedule_model == "kubernetes":
-            k8s_schedule(tf_yaml_dir, cluster_index)
-        elif schedule_model == "suitable":
-            most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be_scheduled)
-        else:
-            logging.error("unsupported schedule model!! Supported model: 'kubernetes' 'suitable'")
+        schedule(schedule_model)
     else:
-        to_be_scheduled_queue = shared_memory.get("to_be_scheduled_queue")
-        if not to_be_scheduled_queue:
-            to_be_scheduled_queue = []
-        to_be_scheduled_pods = {"pods_yaml_file_path": tf_yaml_dir + cluster_index + "/", "pods_requests": pod_to_be_scheduled, "cluster_index": cluster_index, "schedule_model": schedule_model}
-        to_be_scheduled_queue.append(to_be_scheduled_pods)
-        shared_memory.set("to_be_scheduled_queue", to_be_scheduled_queue)
-        
+        add_to_schedule_queue(schedule_model, tf_yaml_dir + cluster_index + '/')
+
     # 主调度过程执行完成，将标志位置成0
-    shared_memory.set("schedule_flag", 0)
+    lock.finish_schedule(shared_memory)
