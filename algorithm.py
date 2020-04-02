@@ -124,7 +124,7 @@ def most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be
 
             # python's magic，浅拷贝
             for pod in pod_packer[:]:
-                #binding_pod_to_node(dest_node, pods_meta_data[pod])
+                binding_pod_to_node(dest_node, pods_meta_data[pod])
                 node_allocatable_resources[dest_node]["cpu"] -= pod_to_be_scheduled[pod]["resources"]["cpu_request"]
                 node_allocatable_resources[dest_node]["memory"] -= pod_to_be_scheduled[pod]["resources"]["memory_request"]
                 pod_to_be_scheduled_list.remove(pod)
@@ -144,17 +144,17 @@ def greedy_schedule():
     return
 
 #k8s的默认调度策略
-def k8s_schedule(tf_yaml_dir, cluster_index):
-    sys_ret = os.system("kubectl create -f " + tf_yaml_dir + cluster_index + "/")
+def k8s_schedule(yaml_dir):
+    sys_ret = os.system("kubectl create -f " + yaml_dir)
     if sys_ret:
-        logging.error("create pods " + tf_yaml_dir + cluster_index + " failed!!! Can't create these pods!!!")
+        logging.error("create pods " + yaml_dir + " failed!!! Can't create these pods!!!")
         sys.exit(2)
     # 等待一个文件夹中所有的job创建完成为止
-    for yaml_file_str in os.listdir(tf_yaml_dir + cluster_index + "/"):
+    for yaml_file_str in os.listdir(+ yaml_dir):
         if "pod" in yaml_file_str:
-            with open(tf_yaml_dir + cluster_index + "/" + yaml_file_str) as f:
+            with open(yaml_dir + yaml_file_str) as f:
                 yaml_description = yaml.load(f)
-                config.load_kube_config()
+                #config.load_kube_config("/root/.kube/config")
                 # 注意创建job对应的版本是BatchV1Api
                 api_instance = client.BatchV1Api()
                 while True:
@@ -165,7 +165,7 @@ def k8s_schedule(tf_yaml_dir, cluster_index):
 
 # 将pod 调度到node上面，执行绑定过程
 def binding_pod_to_node(node_name, pod_meta_data):
-    config.load_kube_config("/root/.kube/config")
+    #config.load_kube_config("/root/.kube/config")
     #注意创建job对应的版本是BatchV1Api
     api_instance = client.BatchV1Api()
     #这里对于pod_meta_data不加上global，此处相当于在yaml文件中加入nodeName，指定调度到哪个节点
@@ -178,4 +178,4 @@ def binding_pod_to_node(node_name, pod_meta_data):
         resp = api_instance.read_namespaced_job(name=pod_meta_data["metadata"]["name"], namespace='default')
         if resp.status.active == 1:
             break
-    # print("Job created. status='%s'" % str(resp.status))
+    print("Job created. status='%s'" % str(resp.status))

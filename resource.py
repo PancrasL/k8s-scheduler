@@ -79,6 +79,7 @@ def load_pod_to_be_scheduled(yaml_dir, exist_pod_resources_request):
     #key: pod_name value: {resources{}}
     pod_to_be_scheduled = {}
 
+    api_core_v1 = client.CoreV1Api()
     # 遍历所有的yaml文件
     for files in os.listdir(yaml_dir):
         pod_yaml_files.append(yaml_dir + '/' + files)
@@ -86,43 +87,44 @@ def load_pod_to_be_scheduled(yaml_dir, exist_pod_resources_request):
     for pod_yaml_file in pod_yaml_files:
         with open(os.path.join(os.path.dirname(__file__), pod_yaml_file)) as f:
             pod_meta_data = yaml.load(f, Loader=yaml.FullLoader)
-
-            #pprint(pod_meta_data)
             pod_name = pod_meta_data["metadata"]["name"]
             pod_exist_flag = False
+
             for exist_pod in exist_pod_resources_request:
                 if pod_name == exist_pod[:-6]:
                     pod_exist_flag = True
                     break
-            if not pod_exist_flag:
-                try:
-                    pods_meta_data[pod_name] = pod_meta_data
-                    containers = pod_meta_data["spec"]["template"]["spec"]["containers"]
-                    all_container_in_pod_requests = {"cpu_request": 0, "memory_request": 0}
-                    for container in containers:
-                        try:
-                            all_container_in_pod_requests["cpu_request"] += convert_resource_unit("cpu", container["resources"]["requests"]["cpu"])
-                        #处理container中不含有request的问题
-                        except Exception, e:
-                            pass
-                        try:
-                            all_container_in_pod_requests["memory_request"] += convert_resource_unit("memory",
-                                                                                                     container["resources"]["requests"]["memory"])
-                        #处理container中不含有request的问题
-                        except Exception, e:
-                            pass
-                    # 这里的pod_yaml_file指的是yaml文件的 file_path 路径
-                    pod_to_be_scheduled[pod_name] = {"resources": all_container_in_pod_requests, "pod_yaml_file": pod_yaml_file}
 
-                #service 类型的yaml文件，同样需要创建
-                except Exception, e:
-                    print "---An Exception happened!!!---", e
-                    # 可能会出现service已经被创建，但是重新创建的情况，因此需要try环绕一下
+            if not pod_exist_flag:
+                if (pod_meta_data["kind"] == "Service"):
                     try:
-                        print ""
-                        #pprint(pod_meta_data)
-                        #api_instance.create_namespaced_service(body=pod_meta_data, namespace="default")
+                        api_core_v1.create_namespaced_service(body=pod_meta_data, namespace="default")
+                    #service可能会被重复创建
                     except Exception, e:
                         pass
+                else:
+                    try:
+                        pods_meta_data[pod_name] = pod_meta_data
+                        containers = pod_meta_data["spec"]["template"]["spec"]["containers"]
+                        all_container_in_pod_requests = {"cpu_request": 0, "memory_request": 0}
+                        for container in containers:
+                            try:
+                                all_container_in_pod_requests["cpu_request"] += convert_resource_unit("cpu",
+                                                                                                      container["resources"]["requests"]["cpu"])
+                            #处理container中不含有request的问题
+                            except Exception, e:
+                                pass
+                            try:
+                                all_container_in_pod_requests["memory_request"] += convert_resource_unit("memory",
+                                                                                                         container["resources"]["requests"]["memory"])
+                            #处理container中不含有request的问题
+                            except Exception, e:
+                                pass
+                        # 这里的pod_yaml_file指的是yaml文件的 file_path 路径
+                        pod_to_be_scheduled[pod_name] = {"resources": all_container_in_pod_requests, "pod_yaml_file": pod_yaml_file}
+
+                    #service 类型的yaml文件，同样需要创建
+                    except Exception, e:
+                        print "---An Exception happened!!!---", e, pod_meta_data
 
     return pod_to_be_scheduled, pods_meta_data

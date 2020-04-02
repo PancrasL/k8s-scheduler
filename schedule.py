@@ -61,14 +61,14 @@ def load_cluster_status(cluster_index):
 
     # 获取待调度的pod
     pod_to_be_scheduled, pods_meta_data = resource.load_pod_to_be_scheduled(tf_yaml_dir + cluster_index, exist_pod_resources_request)
-    
+
     #pprint(pod_to_be_scheduled)
 
 
 #集群调度
 def schedule(schedule_model):
     if schedule_model == "kubernetes":
-        k8s_schedule(tf_yaml_dir, cluster_index)
+        k8s_schedule(tf_yaml_dir + cluster_index + '/')
     elif schedule_model == "greedy":
         greedy_schedule()
     elif schedule_model == "suitable":
@@ -80,7 +80,7 @@ def schedule(schedule_model):
 #当前资源不足，将待调度任务加入到队列中
 def add_to_schedule_queue(schedule_model, yaml_file_path):
     global shared_memory
-    
+
     to_be_scheduled_queue = shared_memory.get("to_be_scheduled_queue")
     if not to_be_scheduled_queue:
         to_be_scheduled_queue = []
