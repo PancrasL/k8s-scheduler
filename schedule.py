@@ -16,7 +16,7 @@ from pprint import pprint
 # kubernetes API
 from kubernetes import client, config
 
-tf_yaml_dir = "/root/my_scheduler/temp_tests/tf_jobs/"
+tf_yaml_dir = "/root/my_scheduler/jobs/"
 
 # 连接到memcache服务器
 shared_memory = memcache.Client(['127.0.0.1:11211'], debug=0)
