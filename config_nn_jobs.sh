@@ -25,7 +25,12 @@ echo "the wk number: ${wk_number}"
 echo "the pod_container_port: ${pod_container_port}"
 echo "create the new tf job folder: ${create_job_dir}"
 
-# delete_jobs.sh
+# if the directory exists，delete it
+if [ -d "./jobs/${create_job_dir}" ];then
+rm -rf ./jobs/${create_job_dir}
+fi
+
+# create delete_jobs.sh
 touch ./template/delete_all_${start_number}.sh
 
 #create new job folder

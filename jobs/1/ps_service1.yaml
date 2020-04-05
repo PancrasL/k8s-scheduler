@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: tensorflow-ps1
+    role: ps
+  name: tensorflow-ps-service1
+spec:
+  ports:
+    - port: 2222
+      targetPort: 2222
+  selector:
+    name: tensorflow-ps1
+    role: ps
