@@ -130,7 +130,7 @@ def main(_):
             pred = multilayer_perceptron(x, weights, biases)
 
             # Define loss and optimizer
-            cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(pred, y_)
+            cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y_)
                                   + regularization_value(weights, biases))
 
             global_step = tf.Variable(0)
@@ -142,7 +142,7 @@ def main(_):
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
   
             saver = tf.train.Saver()
-            summary_op = tf.merge_all_summaries()
+            summary_op = tf.summary.merge_all()
             init_op = tf.initialize_all_variables()
             import sys
             print len(tf.all_variables())

@@ -152,7 +152,7 @@ def main(_):
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
   
             saver = tf.train.Saver()
-            summary_op = tf.merge_all_summaries()
+            summary_op = tf.summary.merge_all()
             init_op = tf.initialize_all_variables()
 
         # Create a "Supervisor", which oversees the training process.
