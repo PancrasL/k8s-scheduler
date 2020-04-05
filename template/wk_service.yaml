@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: tensorflow-worker{{wk_service_index}}
+    role: worker
+  name: tensorflow-wk-service{{wk_service_index}}
+spec:
+  ports:
+    - port: 2222
+      targetPort: 2222
+  selector:
+    name: tensorflow-worker{{wk_service_index}}
+    role: worker

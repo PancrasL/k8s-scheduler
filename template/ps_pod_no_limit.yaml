@@ -1,0 +1,37 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tf-ps-1-2-{{ps_pod_index}}
+spec:
+  template:
+    metadata:
+      labels:
+        name: tensorflow-ps{{ps_pod_index}}
+        role: ps
+    spec:
+      containers:
+      - name: ps
+        image: 192.168.3.51:5000/admin/tensorflow/tensorflow:0.10.0
+        resources:
+          requests:
+            memory: "800M"
+            cpu: "1950m"
+        ports:
+        - containerPort: 2222
+        command: ["/bin/sh", "-c"]
+        args: ["
+if [ ! -d '/mnt/distribute-ML-demo-master-{{ps_pod_index}}/' ]; then curl https://codeload.github.com/xiechengsheng/distribute-ML-demo/zip/master > qw.zip; unzip qw.zip; mv ./distribute-ML-demo-master/ ./distribute-ML-demo-master-{{ps_pod_index}}/; mv ./distribute-ML-demo-master-{{ps_pod_index}}/ /mnt/; cd /mnt/distribute-ML-demo-master-{{ps_pod_index}}/; else cd /mnt/distribute-ML-demo-master-{{ps_pod_index}}/; fi;
+ls ./;
+python test_python.py;
+{{python_codeblock_template}}
+sleep 3600000;
+               "]
+        volumeMounts:
+          # name must match the volume name below
+          - name: nfs
+            mountPath: "/mnt"
+      volumes:
+      - name: nfs
+        persistentVolumeClaim:
+          claimName: my-nfs-pvc
+      restartPolicy: Never
