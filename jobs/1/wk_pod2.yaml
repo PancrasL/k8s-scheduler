@@ -27,7 +27,7 @@ cd /mnt/;
 cd ./distribute-ML-demo-master-0/;
 ls ./;
 python test_python.py;
-python  --ps_hosts=tensorflow-ps-service0.default.svc.cluster.local:2222,tensorflow-ps-service1.default.svc.cluster.local:2222 --worker_hosts=tensorflow-wk-service2.default.svc.cluster.local:2222 --job_name=worker --task_index=0 1>worker_log_0 2>worker_errlog_0;
+python  --ps_hosts=tensorflow-ps-service0.default.svc.cluster.local:2222 --worker_hosts=tensorflow-wk-service1.default.svc.cluster.local:2222,tensorflow-wk-service2.default.svc.cluster.local:2222 --job_name=worker --task_index=1 1>worker_log_1 2>worker_errlog_1;
 sleep 3600000;
                "]
         volumeMounts:
