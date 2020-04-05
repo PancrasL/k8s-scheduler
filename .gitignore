@@ -2,3 +2,4 @@ reference/*
 .vscode/*
 delete_all/*
 jobs/*
+*.pyc

@@ -105,7 +105,7 @@ def main(_):
                 try:
                     mnist = input_data.read_data_sets("data", one_hot=True)
 
-                    file_name = "/mnt/" + "mnist_data.txt"
+                    file_name = "/mnt/" + socket.gethostname()+"mnist_data.txt"
                     f1 = open(file_name, 'w')
                     f1.write(mnist)
                     f1.close()

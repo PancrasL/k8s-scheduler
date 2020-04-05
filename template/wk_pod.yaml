@@ -14,16 +14,17 @@ spec:
         image: tensorflow/tensorflow:1.1.0
         resources:
           requests:
-            memory: "800M"
-            cpu: "1950m"
+            memory: "80M"
+            cpu: "195m"
           limits:
-            memory: "800M"
-            cpu: "1950m"
+            memory: "80M"
+            cpu: "195m"
         ports:
         - containerPort: 2222
         command: ["/bin/sh", "-c"]
         args: ["
 cd /mnt/dnn/;
+ls;
 {{python_codeblock_template}}
 sleep 3600000;
                "]
