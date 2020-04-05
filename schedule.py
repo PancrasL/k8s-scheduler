@@ -78,7 +78,7 @@ def schedule(schedule_model):
 
 
 #当前资源不足，将待调度任务加入到队列中
-def add_to_schedule_queue(schedule_model, yaml_file_path):
+def add_to_reschedule_queue(schedule_model, yaml_file_path):
     global shared_memory
 
     to_be_scheduled_queue = shared_memory.get("to_be_scheduled_queue")
@@ -117,7 +117,7 @@ if __name__ == '__main__':
     if determination:
         schedule(schedule_model)
     else:
-        add_to_schedule_queue(schedule_model, tf_yaml_dir + cluster_index + '/')
+        add_to_reschedule_queue(schedule_model, tf_yaml_dir + cluster_index + '/')
 
     # 主调度过程执行完成，将标志位置成0
     lock.finish_schedule(shared_memory)

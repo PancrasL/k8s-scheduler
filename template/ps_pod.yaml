@@ -23,9 +23,7 @@ spec:
         - containerPort: 2222
         command: ["/bin/sh", "-c"]
         args: ["
-if [ ! -d '/mnt/distribute-ML-demo-master-{{ps_pod_index}}/' ]; then curl https://codeload.github.com/xiechengsheng/distribute-ML-demo/zip/master > qw.zip; unzip qw.zip; mv ./distribute-ML-demo-master/ ./distribute-ML-demo-master-{{ps_pod_index}}/; mv ./distribute-ML-demo-master-{{ps_pod_index}}/ /mnt/; cd /mnt/distribute-ML-demo-master-{{ps_pod_index}}/; else cd /mnt/distribute-ML-demo-master-{{ps_pod_index}}/; fi;
-ls ./;
-python test_python.py;
+cd /mnt/dnn/;
 {{python_codeblock_template}}
 sleep 3600000;
                "]
