@@ -119,5 +119,5 @@ if __name__ == '__main__':
     else:
         add_to_reschedule_queue(schedule_model, tf_yaml_dir + cluster_index + '/')
 
-    # 主调度过程执行完成，将标志位置成0
+    # 解锁
     lock.finish_schedule(shared_memory)

@@ -14,11 +14,11 @@ spec:
         image: tensorflow/tensorflow:1.1.0
         resources:
           requests:
-            memory: "80M"
-            cpu: "195m"
+            memory: "800M"
+            cpu: "800m"
           limits:
-            memory: "80M"
-            cpu: "195m"
+            memory: "800M"
+            cpu: "800m"
         ports:
         - containerPort: 2222
         command: ["/bin/sh", "-c"]
@@ -26,7 +26,7 @@ spec:
 cd /mnt/dnn/;
 ls;
 {{python_codeblock_template}}
-sleep 3600000;
+echo finish;
                "]
         volumeMounts:
           # name must match the volume name below
