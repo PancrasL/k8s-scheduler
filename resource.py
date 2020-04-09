@@ -51,9 +51,10 @@ def load_node_available_resources():
 
     ret_nodes = api_core_v1.list_node(watch=False)
     for item in ret_nodes.items:
-        node_available_resources[item.metadata.name] = {
-            "cpu": convert_resource_unit("cpu", item.status.allocatable["cpu"]),
-            "memory": convert_resource_unit("memory", item.status.allocatable["memory"])
+        if item.metadata.name!="k8s-mst":
+            node_available_resources[item.metadata.name] = {
+                "cpu": convert_resource_unit("cpu", item.status.allocatable["cpu"]),
+                "memory": convert_resource_unit("memory", item.status.allocatable["memory"])
         }
     return node_available_resources
 
@@ -65,8 +66,9 @@ def load_node_allocatable_resources(node_available_resources, exist_pod_resource
     node_allocatable_resources = copy.deepcopy(node_available_resources)
     for exist_pod in exist_pod_resources_request:
         node_name = exist_pod_resources_request[exist_pod]["node_name"]
-        node_allocatable_resources[node_name]["cpu"] -= exist_pod_resources_request[exist_pod]["resources"]["cpu_request"]
-        node_allocatable_resources[node_name]["memory"] -= exist_pod_resources_request[exist_pod]["resources"]["memory_request"]
+        if node_name!="k8s-mst":
+            node_allocatable_resources[node_name]["cpu"] -= exist_pod_resources_request[exist_pod]["resources"]["cpu_request"]
+            node_allocatable_resources[node_name]["memory"] -= exist_pod_resources_request[exist_pod]["resources"]["memory_request"]
 
     return node_allocatable_resources
 
