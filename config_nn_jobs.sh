@@ -118,9 +118,9 @@ do
     sed -i 's/{{python_codeblock_template}}/'"$python_codeblock_temp"'/' ./template/wk_pod${wk_number_end}.yaml
 
     # config wk's workspace, fixme: if there exists many ps servers, then the first ps downloads and creates the shared folder, other ps servers and workers just change workspace to the shared folder 
-    # change_workspace_to_shared_folder_cmd="while [ ! -d './distribute-ML-demo-master-$start_number/' ]; do sleep 1; done; cd ./distribute-ML-demo-master-$start_number/;"
+    change_workspace_to_shared_folder_cmd="while [ ! -d './distribute-ML-demo-master-$start_number/' ]; do sleep 1; done; cd ./distribute-ML-demo-master-$start_number/;"
     #change_workspace_to_shared_folder_cmd="cd ./distribute-ML-demo-master-$start_number/;"
-    #sed -i 's|{{change_workspace_to_shared_folder}}|'"$change_workspace_to_shared_folder_cmd"'|' ./template/wk_pod${wk_number_end}.yaml
+    sed -i 's|{{change_workspace_to_shared_folder}}|'"$change_workspace_to_shared_folder_cmd"'|' ./template/wk_pod${wk_number_end}.yaml
 
     mv ./template/wk_pod${wk_number_end}.yaml ./jobs/${create_job_dir}
 

@@ -23,10 +23,9 @@ spec:
         - containerPort: 2222
         command: ["/bin/sh", "-c"]
         args: ["
-cd /mnt/dnn/;
+if [ ! -d '/mnt/distribute-ML-demo-master-{{ps_pod_index}}/' ]; then curl https://raw.githubusercontent.com/lvpengze/distribute-ML/master/distribute-ML-code.zip > qw.zip; unzip qw.zip; mv ./distribute-ML-code/ ./distribute-ML-demo-master-{{ps_pod_index}}/; mv ./distribute-ML-demo-master-{{ps_pod_index}}/ /mnt/; cd /mnt/distribute-ML-demo-master-{{ps_pod_index}}/; else cd /mnt/distribute-ML-demo-master-{{ps_pod_index}}/; fi;
 ls;
 {{python_codeblock_template}}
-echo finish;
                "]
         volumeMounts:
           # name must match the volume name below

@@ -23,7 +23,8 @@ spec:
         - containerPort: 2222
         command: ["/bin/sh", "-c"]
         args: ["
-cd /mnt/dnn/;
+cd /mnt/;
+{{change_workspace_to_shared_folder}}
 ls;
 {{python_codeblock_template}}
 echo finish;
