@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: tf-wk-1-2-{{wk_pod_index}}
+  name: tf-wk-{{cluster_name}}-{{wk_pod_index}}
 spec:
   template:
     metadata:
@@ -25,6 +25,7 @@ spec:
         args: ["
 cd /mnt/;
 {{change_workspace_to_shared_folder}}
+sleep 2;
 ls;
 {{python_codeblock_template}}
 echo finish;

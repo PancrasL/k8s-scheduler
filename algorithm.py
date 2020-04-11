@@ -16,7 +16,8 @@ def determine_schedule_or_not(kth, pod_request_resources_list, node_allocatable_
         return 1
 
     for i in range(len(node_allocatable_resources_list)):
-        if node_allocatable_resources_list[i][0] >= pod_request_resources_list[kth][0] and node_allocatable_resources_list[i][1] >= pod_request_resources_list[kth][1]:
+        if node_allocatable_resources_list[i][0] >= pod_request_resources_list[kth][0] and node_allocatable_resources_list[i][
+                1] >= pod_request_resources_list[kth][1]:
             hashtable[tuple(tuple(l1) for l1 in node_allocatable_resources_list)] = 1
             node_allocatable_resources_list[i][0] -= pod_request_resources_list[kth][0]
             node_allocatable_resources_list[i][1] -= pod_request_resources_list[kth][1]
@@ -34,15 +35,14 @@ def most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be
     #todo: need a better way to deal with pod_max_cpu=0 or pod_max_memory=0,because they are divisor
     pod_max_cpu = 0.000001
     pod_max_memory = 0.000001
-    pod_cpu_ratio = 1/2.0
-    pod_memory_ratio = 1/2.0
+    pod_cpu_ratio = 1 / 2.0
+    pod_memory_ratio = 1 / 2.0
 
     #将cpu和memory的资源比例值相同
-    node_cpu_ratio = 1/2.0
-    node_memory_ratio = 1/2.0
+    node_cpu_ratio = 1 / 2.0
+    node_memory_ratio = 1 / 2.0
     pod_to_be_scheduled_list = []
     pod_score = {}
-
 
     #以最大资源量为基准，以便将资源归'1'化处理
     for pod in pod_to_be_scheduled:
@@ -55,7 +55,7 @@ def most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be
         pod_score[pod] = pod_to_be_scheduled[pod]["resources"]["cpu_request"] / pod_max_cpu * pod_cpu_ratio + pod_to_be_scheduled[pod]["resources"][
             "memory_request"] / pod_max_memory * pod_memory_ratio
     pod_score = sorted(pod_score.iteritems(), key=lambda dic: dic[1], reverse=False)
-    
+
     #队列构成方式：首先是ps，之后是按资源需求升序的wk
     for pod in pod_score:
         #专门针对tensorflow框架
@@ -70,8 +70,8 @@ def most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be
     #考虑两种情况：1.没有可以完全容纳下所有pod的节点，需要做的是首先选取一个最大的节点(尽可能多地)将待创建pod列表前面的pod创建，之后再将剩余的pod选择合适的节点
     #2.直接存在多个可以容纳所有pod的节点，需要选择一个最接近所有pod使用资源的节点
     pod_packer = copy.deepcopy(pod_to_be_scheduled_list)
-    #schedule method  
-    while pod_to_be_scheduled_list:  
+    #schedule method
+    while pod_to_be_scheduled_list:
         remain_pod_cpu_request = 0
         remain_pod_memory_request = 0
         abundant_resource_node = {}
@@ -139,9 +139,11 @@ def most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be
             pod_packer = copy.deepcopy(pod_packer[:-1])
     print "Done......"
 
+
 #贪心调度策略
 def greedy_schedule():
     return
+
 
 #k8s的默认调度策略
 def k8s_schedule(yaml_dir):
@@ -150,7 +152,7 @@ def k8s_schedule(yaml_dir):
         logging.error("create pods " + yaml_dir + " failed!!! Can't create these pods!!!")
         sys.exit(2)
     # 等待一个文件夹中所有的job创建完成为止
-    for yaml_file_str in os.listdir(+ yaml_dir):
+    for yaml_file_str in os.listdir(+yaml_dir):
         if "pod" in yaml_file_str:
             with open(yaml_dir + yaml_file_str) as f:
                 yaml_description = yaml.load(f)

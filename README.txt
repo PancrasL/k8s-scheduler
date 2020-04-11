@@ -1,0 +1,1 @@
+delete_all, tests文件夹下的内容均由脚本自动生成

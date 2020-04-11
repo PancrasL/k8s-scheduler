@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: tf-wk-1-2-{{wk_pod_index}}
+  name: tf-wk-1-{{cluster_name}}-{{wk_pod_index}}
 spec:
   template:
     metadata:
@@ -11,21 +11,21 @@ spec:
     spec:
       containers:
       - name: worker
-        image: 192.168.3.51:5000/admin/tensorflow/tensorflow:0.10.0
+        image: tensorflow/tensorflow:1.1.0
         resources:
           requests:
             memory: "800M"
-            cpu: "1950m"
+            cpu: "800m"
         ports:
         - containerPort: 2222
         command: ["/bin/sh", "-c"]
         args: ["
 cd /mnt/;
 {{change_workspace_to_shared_folder}}
-ls ./;
-python test_python.py;
+sleep 2;
+ls;
 {{python_codeblock_template}}
-sleep 3600000;
+echo finish;
                "]
         volumeMounts:
           # name must match the volume name below
@@ -33,6 +33,7 @@ sleep 3600000;
             mountPath: "/mnt"
       volumes:
       - name: nfs
-        persistentVolumeClaim:
-          claimName: my-nfs-pvc
+        nfs:
+          server: 192.168.0.10
+          path: "/root/nfsFile"
       restartPolicy: Never

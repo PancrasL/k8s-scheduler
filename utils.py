@@ -3,6 +3,7 @@
 import string
 import logging
 
+
 # 单位的换算，由CPU转换成milliCPU，由Gi/Mi/Ki/G/M/K转化成Byte
 def convert_resource_unit(resource_type, resource):
     flag = ""
@@ -52,6 +53,7 @@ def convert_resource_unit(resource_type, resource):
         logging.error("Unknown Resource Type!!! Return 0!!!")
         return 0
 
+
 # 将字典变为列表
 def get_resources_list(pod_to_be_scheduled, node_allocatable_resources):
     pod_list = []
@@ -63,4 +65,3 @@ def get_resources_list(pod_to_be_scheduled, node_allocatable_resources):
         # node_allocatable_resources_list.append({"cpu": node_allocatable_resources[node]["cpu"], "memory": node_allocatable_resources[node]["memory"]})
         node_allocatable_resources_list.append([node_allocatable_resources[node]["cpu"], node_allocatable_resources[node]["memory"]])
     return pod_list, node_allocatable_resources_list
-

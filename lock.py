@@ -13,5 +13,6 @@ def start_schedule(shared_memory):
     # 模拟加锁
     shared_memory.set("schedule_flag", 1)
 
+
 def finish_schedule(shared_memory):
     shared_memory.set("schedule_flag", 0)
