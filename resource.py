@@ -2,9 +2,10 @@
 
 import os, yaml, logging, copy
 
-from kubernetes import client
+from kubernetes import config, client
 from utils import convert_resource_unit
 
+config.load_kube_config()
 
 def load_exist_pod_resources_request():
     # key: pod_name value: {nodeName:nodeName, resources{}}
@@ -31,8 +32,6 @@ def load_exist_pod_resources_request():
 
             try:
                 exist_pod_resources_request[item.metadata.name] = {"node_name": item.spec.node_name, "resources": all_container_in_pod_requests}
-            # 上面的语句在pod被删除之后，可能还会扫描到pod，此时requests返回的请求为None，所以会报错：KeyError: 'spec'
-            # 既然pod都已经被杀死了，那么exist_pod_resources_request这个字典中本来就不应该出现这个pod，因此出现异常就不做任何处理
             except Exception, e:
                 pass
         # 异常的pod

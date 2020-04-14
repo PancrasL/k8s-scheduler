@@ -13,10 +13,9 @@ from algorithm import determine_schedule_or_not, most_suitable_schedule, k8s_sch
 # debug utils
 from pprint import pprint
 
-# kubernetes API
-from kubernetes import client, config
-
 tf_cluster_dir = "/root/my_scheduler/jobs/"
+#tf_job_dir = tf_cluster_dir + cluster_name
+tf_job_dir = ""
 
 # 连接到memcache服务器
 shared_memory = memcache.Client(['127.0.0.1:11211'], debug=0)
@@ -37,16 +36,12 @@ pods_meta_data = {}
 
 
 #加载集群信息
-def load_cluster_status(cluster_name):
+def load_cluster_status():
     global exist_pod_resources_request
     global node_available_resources
     global node_allocatable_resources
     global pod_to_be_scheduled
     global pods_meta_data
-
-    # 集群认证
-    config.load_kube_config("/root/.kube/config")
-
     # 获取集群内所有的pods的资源分配量
     exist_pod_resources_request = resource.load_exist_pod_resources_request()
     # pprint(exist_pod_resources_request)
@@ -60,8 +55,7 @@ def load_cluster_status(cluster_name):
     # pprint(node_allocatable_resources)
 
     # 获取待调度的pod
-    pod_to_be_scheduled, pods_meta_data = resource.load_pod_to_be_scheduled(tf_cluster_dir + cluster_name, exist_pod_resources_request)
-
+    pod_to_be_scheduled, pods_meta_data = resource.load_pod_to_be_scheduled(tf_job_dir, exist_pod_resources_request)
     #pprint(pod_to_be_scheduled)
 
 
@@ -77,7 +71,7 @@ def schedule(schedule_model):
         logging.error("unsupported schedule model!! Supported model: 'kubernetes' 'suitable' 'greedy'")
 
 
-#当前资源不足，将待调度任务加入到队列中
+#集群资源不足以调度当前任务，则将该任务加入到待调度队列，待资源满足后，由monitor模块的守护进程进行调度
 def add_to_reschedule_queue(schedule_model, yaml_file_path):
     global shared_memory
 
@@ -101,15 +95,16 @@ if __name__ == '__main__':
     cluster_name = "local-test"
     schedule_model = "suitable"
 
+    tf_job_dir = tf_cluster_dir + cluster_name + '/'
+
     # 加锁
-    lock.start_schedule(shared_memory)
+    lock.start_schedule()
 
     # 加载集群状态
-    load_cluster_status(cluster_name)
+    load_cluster_status()
 
     # 判断当前集群能否容纳待调度的tf集群
     pod_request_resources_list, node_allocatable_resources_list = get_resources_list(pod_to_be_scheduled, node_allocatable_resources)
-    #print "pod_request_resources_list =", pod_request_resources_list, "node_allocatable_resources_list =", node_allocatable_resources_list
     hashtable = {}
     determination = determine_schedule_or_not(0, pod_request_resources_list, node_allocatable_resources_list, hashtable)
 
@@ -117,7 +112,7 @@ if __name__ == '__main__':
     if determination:
         schedule(schedule_model)
     else:
-        add_to_reschedule_queue(schedule_model, tf_cluster_dir + cluster_name + '/')
+        add_to_reschedule_queue(schedule_model, tf_job_dir)
 
     # 解锁
-    lock.finish_schedule(shared_memory)
+    lock.finish_schedule()
