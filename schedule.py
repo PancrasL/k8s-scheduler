@@ -1,14 +1,14 @@
 # coding:utf-8
 
 import sys
-import memcache
 import logging
 
-# 其他模块
+# 调度器的其他模块
 import resource
 import lock
 from utils import convert_resource_unit, get_resources_list
 from algorithm import determine_schedule_or_not, most_suitable_schedule, k8s_schedule, greedy_schedule
+from shared_memory import shared_memory
 
 # debug utils
 from pprint import pprint
@@ -16,9 +16,6 @@ from pprint import pprint
 tf_cluster_dir = "/root/my_scheduler/jobs/"
 #tf_job_dir = tf_cluster_dir + cluster_name
 tf_job_dir = ""
-
-# 连接到memcache服务器
-shared_memory = memcache.Client(['127.0.0.1:11211'], debug=0)
 
 # key: pod_name value: {nodeName:nodeName, resources{}}
 exist_pod_resources_request = {}
@@ -86,6 +83,7 @@ def add_to_reschedule_queue(schedule_model, yaml_file_path):
     }
     to_be_scheduled_queue.append(to_be_scheduled_pods)
     shared_memory.set("to_be_scheduled_queue", to_be_scheduled_queue)
+    print("Add to to be scheduled queue:", to_be_scheduled_pods)
 
 
 if __name__ == '__main__':
