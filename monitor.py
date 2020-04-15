@@ -6,16 +6,20 @@
 # monitor 负责实现 对处于排队状态下的ps 和 wk进行调度
 # 以及根据当前集群状态将待调度的tf集群尽可能地调度到同一节点，并对销毁已完成的训练任务
 ######################################################################################################################
-
-import os, sys, signal
+# 系统模块
+import logging
+import os
+import signal
+import sys
 import threading
 import time
-import logging
 
-# memcache模块，用于存储排队的tf集群的pod容器
-import memcache
-
+# 调度器其余模块
+from resource import *
+from algorithm import determine_schedule_or_not
 from schedule import tf_cluster_dir
+from shared_memory import shared_memory
+from utils import get_resources_list
 
 training_dir = "/root/nfsFile/"
 
@@ -24,7 +28,52 @@ cpu_ratio = 1.0
 memory_ratio = 0.0
 
 
-# 删除训练运行完的ps和wk，腾出集群的可用资源，并删除Mysql数据库，并删除训练的文件夹
+# 获取之后到来的tf集群
+# to_be_scheduled_queue[0]结构：
+# {
+#     "pods_yaml_file_path": yaml_file_path,
+#     "pods_requests": top,
+#     "cluster_name": cluster_name,
+#     "schedule_model": schedule_model
+# }
+def get_to_be_scheduled_queue():
+    to_be_scheduled_queue = shared_memory.get("to_be_scheduled_queue")
+    return to_be_scheduled_queue
+
+
+# 判断集群资源是否满足待调度队列对首任务的需求
+def determine_schedule_queued_tf(node_allocatable_resources, pod_to_be_scheduled):
+    # 判断当前集群能否容纳待调度的tf集群
+    pod_request_resources_list, node_allocatable_resources_list = get_resources_list(pod_to_be_scheduled, node_allocatable_resources)
+    hashtable = {}
+    determination = determine_schedule_or_not(0, pod_request_resources_list, node_allocatable_resources_list, hashtable)
+    return determination
+
+
+# 决定是否对排队队列中的任务进行调度的守护进程
+def schedule_tf():
+    while True:
+        node_allocatable_resources = load_node_allocatable_resources(load_node_available_resources(), load_exist_pod_resources_request())
+        to_be_scheduled_queue = get_to_be_scheduled_queue()
+        
+        # 有排队的tf集群队列
+        if to_be_scheduled_queue:
+            print(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())), "to_be_scheduled_queue:", len(to_be_scheduled_queue))
+            top = to_be_scheduled_queue[0]
+            determination = determine_schedule_queued_tf(node_allocatable_resources, top["pods_requests"])
+            if determination:
+                sys_ret = os.system("python schedule.py " + top["cluster_name"] + " " +
+                                    top["schedule_model"])  # todo:这不就是和新调度来的tf集群等同处理吗，直接调用shell系统执行python指令
+                if sys_ret:
+                    logging.error("执行schedule.py失败...")
+                # 调度完成将原来排队队列中的tf的删除
+                del (to_be_scheduled_queue[0])
+                shared_memory.set("to_be_scheduled_queue", to_be_scheduled_queue)
+        # 周期是5秒
+        time.sleep(5)
+
+
+# 删除训练运行完的ps和wk，腾出集群的可用资源，并删除训练的文件夹
 def delete_finished_job_pods():
     while True:
         all_finished_jobs = set()
@@ -92,13 +141,13 @@ def delete_finished_job_pods():
 
 # 一个线程用于清理垃圾数据，一个线程用于监控是否可以进行重调度
 def multi_threads():
-    #schedule_tf_thread = threading.Thread(target=schedule_tf, args=())
+    schedule_tf_thread = threading.Thread(target=schedule_tf, args=())
     delete_finished_job_pods_thread = threading.Thread(target=delete_finished_job_pods, args=())
 
-    #schedule_tf_thread.start()
+    schedule_tf_thread.start()
     delete_finished_job_pods_thread.start()
 
-    #schedule_tf_thread.join()
+    schedule_tf_thread.join()
     delete_finished_job_pods_thread.join()
 
 
@@ -127,11 +176,11 @@ class Watcher():
 
 
 if __name__ == '__main__':
+    #清空memcache
+    #shared_memory.flush_all()
+
     # 按下Ctrl+C杀死所有线程
     Watcher()
-
-    # 连接到memcache服务器
-    shared_memory = memcache.Client(['127.0.0.1:11211'], debug=0)
 
     # 开启两个线程
     multi_threads()

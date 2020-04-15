@@ -83,7 +83,7 @@ def add_to_reschedule_queue(schedule_model, yaml_file_path):
     }
     to_be_scheduled_queue.append(to_be_scheduled_pods)
     shared_memory.set("to_be_scheduled_queue", to_be_scheduled_queue)
-    print("Add to to be scheduled queue:", to_be_scheduled_pods)
+    print("Add to to be scheduled queue:", yaml_file_path)
 
 
 if __name__ == '__main__':
@@ -105,7 +105,7 @@ if __name__ == '__main__':
     pod_request_resources_list, node_allocatable_resources_list = get_resources_list(pod_to_be_scheduled, node_allocatable_resources)
     hashtable = {}
     determination = determine_schedule_or_not(0, pod_request_resources_list, node_allocatable_resources_list, hashtable)
-
+    #determination = False
     # 执行调度
     if determination:
         schedule(schedule_model)

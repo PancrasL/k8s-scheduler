@@ -36,8 +36,8 @@ def load_exist_pod_resources_request():
                 pass
         # 异常的pod
         else:
-            logging.error(item.metadata.name, item.status.phase, "pod " + item.metadata.name + " is deleted")
-            # api_core_v1.delete_namespaced_pod(item.metadata.name, item.metadata.namespace)
+            print(item.metadata.name, item.status.phase, "pod " + item.metadata.name + " is deleted")
+            api_core_v1.delete_namespaced_pod(item.metadata.name, item.metadata.namespace)
 
     return exist_pod_resources_request
 
