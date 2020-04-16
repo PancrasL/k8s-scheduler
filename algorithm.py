@@ -5,6 +5,7 @@ import yaml
 import logging
 from kubernetes import config, client
 
+from utils import convert_resource_unit
 
 # 判断整个集群的现有资源能不能运行新来的tf的所有pod，假如可以，再进行对集群的调度，如果不行，将yaml文件的位置存储到memcached数据库
 # 需要注意的是，对于指定的tf集群而言，只有当所有的wk节点被调度之后，整个集群才能正常工作
@@ -31,7 +32,7 @@ def determine_schedule_or_not(kth, pod_request_resources_list, node_allocatable_
 
 
 #最适资源调度策略
-def most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be_scheduled):
+def most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be_scheduled, node_utilization):
     #todo: need a better way to deal with pod_max_cpu=0 or pod_max_memory=0,because they are divisor
     pod_max_cpu = 0.000001
     pod_max_memory = 0.000001
@@ -124,7 +125,7 @@ def most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be
 
             # python's magic，浅拷贝
             for pod in pod_packer[:]:
-                binding_pod_to_node(dest_node, pods_meta_data[pod])
+                binding_pod_to_node(dest_node, pods_meta_data[pod], node_utilization[dest_node])
                 node_allocatable_resources[dest_node]["cpu"] -= pod_to_be_scheduled[pod]["resources"]["cpu_request"]
                 node_allocatable_resources[dest_node]["memory"] -= pod_to_be_scheduled[pod]["resources"]["memory_request"]
                 pod_to_be_scheduled_list.remove(pod)
@@ -137,6 +138,7 @@ def most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be
         #现有节点资源不足以支撑运行所有的pod，将列表靠前的pod运行,直到找到最先支持最多pod运行的节点为止
         else:
             pod_packer = copy.deepcopy(pod_packer[:-1])
+
     print "Done......"
 
 
@@ -152,10 +154,10 @@ def k8s_schedule(yaml_dir):
         logging.error("create pods " + yaml_dir + " failed!!! Can't create these pods!!!")
         sys.exit(2)
     # 等待一个文件夹中所有的job创建完成为止
-    for yaml_file_str in os.listdir(+yaml_dir):
+    for yaml_file_str in os.listdir(yaml_dir):
         if "pod" in yaml_file_str:
             with open(yaml_dir + yaml_file_str) as f:
-                yaml_description = yaml.load(f)
+                yaml_description = yaml.load(f, Loader=yaml.FullLoader)
                 #config.load_kube_config("/root/.kube/config")
                 # 注意创建job对应的版本是BatchV1Api
                 api_instance = client.BatchV1Api()
@@ -165,13 +167,24 @@ def k8s_schedule(yaml_dir):
                         break
 
 
+# 部署服务
+def deploy_services(services_meta_data):
+    api_core_v1 = client.CoreV1Api()
+    for service in services_meta_data:
+        api_core_v1.create_namespaced_service(body=services_meta_data[service], namespace="default")
+
 # 将pod 调度到node上面，执行绑定过程
-def binding_pod_to_node(node_name, pod_meta_data):
+def binding_pod_to_node(node_name, pod_meta_data, resource_utilization = None):
     #config.load_kube_config("/root/.kube/config")
     #注意创建job对应的版本是BatchV1Api
     api_instance = client.BatchV1Api()
     #这里对于pod_meta_data不加上global，此处相当于在yaml文件中加入nodeName，指定调度到哪个节点
     pod_meta_data["spec"]["template"]["spec"]["nodeName"] = node_name
+
+    #修改pod的request
+    if resource_utilization:
+        change_pod_request(pod_meta_data, resource_utilization)
+
     resp = api_instance.create_namespaced_job(body=pod_meta_data, namespace="default")
 
     #等待pod创建完毕再创建下一个pod，因为需要获取pod使用集群资源的情况才能对接下来的pod进行调度
@@ -181,3 +194,13 @@ def binding_pod_to_node(node_name, pod_meta_data):
         if resp.status.active == 1:
             break
     print("Job created. status='%s'" % str(resp.status))
+
+def change_pod_request(pod_meta_data, resource_utilization):
+    for container in pod_meta_data["spec"]["template"]["spec"]["containers"]:
+        new_cpu_requests = float(convert_resource_unit("cpu", container["resources"]["requests"]["cpu"])) / resource_utilization["cpu_resource_coefficient"]
+        new_cpu_requests_str = str(int(new_cpu_requests))
+        container["resources"]["requests"]["cpu"] = new_cpu_requests_str + "m"
+
+        new_memory_requests = float(convert_resource_unit("memory", container["resources"]["requests"]["memory"])) / resource_utilization["memory_resource_coefficient"]
+        new_memory_requests_str = str(int(new_memory_requests)/1000000)#单位转化为M
+        container["resources"]["requests"]["memory"] = new_cpu_requests_str + "M"

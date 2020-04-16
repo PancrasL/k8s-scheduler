@@ -15,17 +15,17 @@ def load_exist_pod_resources_request():
     ret_pods = api_core_v1.list_pod_for_all_namespaces(watch=False)
     for item in ret_pods.items:
         # 正常运行的pod
-        if item.status.phase == "Running":
+        if item.status.phase == "Running" :
             # 一个pod中的多个container是被封装成了一个list列表，需要遍历列表获取各个container的需要的资源
             all_container_in_pod_requests = {"cpu_request": 0, "memory_request": 0}
             for container in item.spec.containers:
                 try:
-                    all_container_in_pod_requests["cpu_request"] += convert_resource_unit("cpu", container.resources.requests["cpu"])
+                    all_container_in_pod_requests["cpu_request"] += convert_resource_unit("cpu", container.resources.limits["cpu"])
                 # 处理container中不含有request的问题
                 except Exception, e:
                     pass
                 try:
-                    all_container_in_pod_requests["memory_request"] += convert_resource_unit("memory", container.resources.requests["memory"])
+                    all_container_in_pod_requests["memory_request"] += convert_resource_unit("memory", container.resources.limits["memory"])
                 # 处理container中不含有request的问题
                 except Exception, e:
                     pass
@@ -36,8 +36,9 @@ def load_exist_pod_resources_request():
                 pass
         # 异常的pod
         else:
-            print(item.metadata.name, item.status.phase, "pod " + item.metadata.name + " is deleted")
-            api_core_v1.delete_namespaced_pod(item.metadata.name, item.metadata.namespace)
+            print(item.metadata.name, item.status.phase)
+            if item.status.phase == "Failed":
+                api_core_v1.delete_namespaced_pod(item.metadata.name, item.metadata.namespace)
 
     return exist_pod_resources_request
 
@@ -79,6 +80,8 @@ def load_pod_to_be_scheduled(yaml_dir, exist_pod_resources_request):
     pod_yaml_files = []
     #key: pod_name value: {resources{}}
     pod_to_be_scheduled = {}
+    #key: service_name value: meta_data
+    services_meta_data = {}
 
     api_core_v1 = client.CoreV1Api()
     # 遍历所有的yaml文件
@@ -99,7 +102,8 @@ def load_pod_to_be_scheduled(yaml_dir, exist_pod_resources_request):
             if not pod_exist_flag:
                 if (pod_meta_data["kind"] == "Service"):
                     try:
-                        api_core_v1.create_namespaced_service(body=pod_meta_data, namespace="default")
+                        #api_core_v1.create_namespaced_service(body=pod_meta_data, namespace="default")
+                        services_meta_data[pod_meta_data["metadata"]["name"]] = pod_meta_data
                     #service可能会被重复创建
                     except Exception, e:
                         pass
@@ -128,4 +132,4 @@ def load_pod_to_be_scheduled(yaml_dir, exist_pod_resources_request):
                     except Exception, e:
                         print "---An Exception happened!!!---", e, pod_meta_data
 
-    return pod_to_be_scheduled, pods_meta_data
+    return pod_to_be_scheduled, pods_meta_data, services_meta_data

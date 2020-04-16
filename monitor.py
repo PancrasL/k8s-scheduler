@@ -177,7 +177,7 @@ class Watcher():
 
 if __name__ == '__main__':
     #清空memcache
-    #shared_memory.flush_all()
+    shared_memory.flush_all()
 
     # 按下Ctrl+C杀死所有线程
     Watcher()

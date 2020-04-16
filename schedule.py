@@ -2,12 +2,13 @@
 
 import sys
 import logging
+import subprocess
 
 # 调度器的其他模块
 import resource
 import lock
 from utils import convert_resource_unit, get_resources_list
-from algorithm import determine_schedule_or_not, most_suitable_schedule, k8s_schedule, greedy_schedule
+from algorithm import determine_schedule_or_not, most_suitable_schedule, k8s_schedule, greedy_schedule, deploy_services
 from shared_memory import shared_memory
 
 # debug utils
@@ -30,6 +31,44 @@ node_allocatable_resources = {}  # node_available_resources-exist_pod_resources_
 pod_to_be_scheduled = {}
 # key: pod_name value:meta_data
 pods_meta_data = {}
+# key: service_name value:meta_data
+services_meta_data = {}
+# key: node_name value: resource_utilization
+node_utilization = {}
+
+
+#超卖
+def overSale():
+    global node_available_resources
+    global node_utilization
+
+    ret = subprocess.Popen("kubectl top node", shell=True, stdout=subprocess.PIPE)
+    out = ret.stdout.readlines()
+    out = out[1:]
+
+    #获取节点资源使用率
+    #超卖系数=(1-资源使用率)/2  资源使用率<80%
+    #        =1                 资源使用率>=80%
+    for line in out:
+        resource_utilization = {"cpu_usage": 0, "cpu_utilization": 0, "memory_usage": 0, "memory_utilization": 0}  #单位分别为m, %, Mi, %
+        splitLine = line.split()
+        resource_utilization["cpu_usage"] = float(splitLine[1][:-1])
+        resource_utilization["cpu_utilization"] = float(splitLine[2][:-1])
+        resource_utilization["cpu_resource_coefficient"] = float((100 - resource_utilization["cpu_utilization"]) / 200) + 1
+
+        resource_utilization["memory_usage"] = float(splitLine[3][:-2])
+        resource_utilization["memory_utilization"] = float(splitLine[4][:-1])
+        resource_utilization["memory_resource_coefficient"] = float((100 - resource_utilization["memory_utilization"]) / 200) + 1
+        node_utilization[splitLine[0]] = resource_utilization
+
+    for node in node_utilization:
+        if node in node_available_resources:
+            if (node_utilization[node]["cpu_utilization"] < 80):
+                node_available_resources[node]["cpu"] = node_utilization[node]["cpu_resource_coefficient"] * node_available_resources[node]["cpu"]
+            if (node_utilization[node]["memory_utilization"] < 80):
+                node_available_resources[node][
+                    "memory"] = node_utilization[node]["memory_resource_coefficient"] * node_available_resources[node]["memory"]
+    pprint(node_available_resources)
 
 
 #加载集群信息
@@ -39,6 +78,7 @@ def load_cluster_status():
     global node_allocatable_resources
     global pod_to_be_scheduled
     global pods_meta_data
+    global services_meta_data
     # 获取集群内所有的pods的资源分配量
     exist_pod_resources_request = resource.load_exist_pod_resources_request()
     # pprint(exist_pod_resources_request)
@@ -47,12 +87,15 @@ def load_cluster_status():
     node_available_resources = resource.load_node_available_resources()
     # pprint(node_available_resources)
 
+    # 超卖
+    overSale()
+
     # 扣除已分配的资源，计算剩余可分配资源
     node_allocatable_resources = resource.load_node_allocatable_resources(node_available_resources, exist_pod_resources_request)
     # pprint(node_allocatable_resources)
 
     # 获取待调度的pod
-    pod_to_be_scheduled, pods_meta_data = resource.load_pod_to_be_scheduled(tf_job_dir, exist_pod_resources_request)
+    pod_to_be_scheduled, pods_meta_data, services_meta_data = resource.load_pod_to_be_scheduled(tf_job_dir, exist_pod_resources_request)
     #pprint(pod_to_be_scheduled)
 
 
@@ -61,9 +104,11 @@ def schedule(schedule_model):
     if schedule_model == "kubernetes":
         k8s_schedule(tf_cluster_dir + cluster_name + '/')
     elif schedule_model == "greedy":
+        deploy_services(services_meta_data)
         greedy_schedule()
     elif schedule_model == "suitable":
-        most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be_scheduled)
+        deploy_services(services_meta_data)
+        most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be_scheduled, node_utilization)
     else:
         logging.error("unsupported schedule model!! Supported model: 'kubernetes' 'suitable' 'greedy'")
 
@@ -87,6 +132,7 @@ def add_to_reschedule_queue(schedule_model, yaml_file_path):
 
 
 if __name__ == '__main__':
+    #lock.finish_schedule()
     argvs = sys.argv
     pprint(argvs)
 
