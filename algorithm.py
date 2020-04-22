@@ -171,7 +171,10 @@ def k8s_schedule(yaml_dir):
 def deploy_services(services_meta_data):
     api_core_v1 = client.CoreV1Api()
     for service in services_meta_data:
-        api_core_v1.create_namespaced_service(body=services_meta_data[service], namespace="default")
+        try:
+            api_core_v1.create_namespaced_service(body=services_meta_data[service], namespace="default")
+        except Exception, e:
+            pass
 
 # 将pod 调度到node上面，执行绑定过程
 def binding_pod_to_node(node_name, pod_meta_data, resource_utilization = None):

@@ -1,6 +1,6 @@
 # coding:utf-8
 
-import sys
+import sys, time
 import logging
 import subprocess
 
@@ -158,6 +158,6 @@ if __name__ == '__main__':
         schedule(schedule_model)
     else:
         add_to_reschedule_queue(schedule_model, tf_job_dir)
-
+    time.sleep(5)
     # 解锁
     lock.finish_schedule()

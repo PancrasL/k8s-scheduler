@@ -36,7 +36,7 @@ def load_exist_pod_resources_request():
                 pass
         # 异常的pod
         else:
-            print(item.metadata.name, item.status.phase)
+            #print(item.metadata.name, item.status.phase)
             if item.status.phase == "Failed":
                 api_core_v1.delete_namespaced_pod(item.metadata.name, item.metadata.namespace)
 

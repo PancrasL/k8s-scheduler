@@ -37,7 +37,7 @@ touch ./template/delete_all_${cluster_name}.sh
 mkdir -p ./jobs/${cluster_name}
 
 #--------------------------------------------------------------------------------#
-##添加TF集群的地址
+##添加ps的地址
 python_codeblock="python "$nn
 j=0
 service_index=$start_number
@@ -45,34 +45,35 @@ while [ $j -lt $ps_number ]
 do
     if [ $j -eq 0 ]
     then
-        python_codeblock=$python_codeblock" --ps_hosts=tensorflow-ps-service${service_index}.default.svc.cluster.local:2222,"
+        python_codeblock=$python_codeblock" --ps_hosts=tensorflow-ps-service-${cluster_name}-${service_index}.default.svc.cluster.local:2222,"
     else
-        python_codeblock=$python_codeblock"tensorflow-ps-service${service_index}.default.svc.cluster.local:2222,"
+        python_codeblock=$python_codeblock"tensorflow-ps-service-${cluster_name}-${service_index}.default.svc.cluster.local:2222,"
     fi
     service_index=$(expr $service_index + 1)
     j=$(expr $j + 1)
 done
 
-#remove the comma
+#移除逗号
 python_codeblock=${python_codeblock%?}
 
+#添加worker的地址
 j=0
 while [ $j -lt $wk_number ]
 do
     if [ $j -eq 0 ]
     then
-        python_codeblock=$python_codeblock" --worker_hosts=tensorflow-wk-service${service_index}.default.svc.cluster.local:2222,"
+        python_codeblock=$python_codeblock" --worker_hosts=tensorflow-wk-service-${cluster_name}-${service_index}.default.svc.cluster.local:2222,"
     else
-        python_codeblock=$python_codeblock"tensorflow-wk-service${service_index}.default.svc.cluster.local:2222,"
+        python_codeblock=$python_codeblock"tensorflow-wk-service-${cluster_name}-${service_index}.default.svc.cluster.local:2222,"
     fi
     service_index=$(expr $service_index + 1)
     j=$(expr $j + 1)
 done
-#remove the comma
+#移除逗号
 python_codeblock=${python_codeblock%?}
 
 #--------------------------------------------------------------------------------#
-##配置ps
+##配置ps的yaml文件
 i=0
 ps_number_end=${start_number}
 while [ `echo "${i} < ${ps_number}" | bc` -eq 1 ]
@@ -89,7 +90,7 @@ do
     if [ ${ps_number_end} -eq ${start_number} ]; then 
         ps_change_workplace_to_shared_folder="if [ ! -d '/mnt/distribute-ML-demo-master-$cluster_name/' ]; then curl ftp://192.168.0.10/distribute-ML-code.zip > qw.zip; unzip qw.zip; mv ./distribute-ML-code/ ./distribute-ML-demo-master-$cluster_name/;mv ./distribute-ML-demo-master-$cluster_name/ /mnt/;cd /mnt/distribute-ML-demo-master-$cluster_name/; else cd /mnt/distribute-ML-demo-master-$cluster_name/; fi;"
     else
-        ps_change_workplace_to_shared_folder="while [ ! -d './distribute-ML-demo-master-$cluster_name/' ]; do sleep 1; done; cd ./distribute-ML-demo-master-$cluster_name/;"
+        ps_change_workplace_to_shared_folder="cd /mnt/; while [ ! -d './distribute-ML-demo-master-$cluster_name/' ]; do sleep 1; done; cd ./distribute-ML-demo-master-$cluster_name/;"
     fi
     sed -i 's|{{ps_change_workplace_to_shared_folder}}|'"$ps_change_workplace_to_shared_folder"'|' ./template/ps_pod${ps_number_end}.yaml
 
@@ -101,19 +102,20 @@ do
     #config ps service
     cp ./template/ps_service.yaml ./template/ps_service${ps_number_end}.yaml
     sed -i 's/{{ps_service_index}}/'$ps_number_end'/' ./template/ps_service${ps_number_end}.yaml
+    sed -i 's/{{cluster_name}}/'$cluster_name'/' ./template/ps_service${ps_number_end}.yaml
     mv ./template/ps_service${ps_number_end}.yaml ./jobs/${cluster_name}
 
     
 
     # config delete ps service
-    echo "kubectl delete svc tensorflow-ps-service${ps_number_end}" >> ./template/delete_all_${cluster_name}.sh
+    echo "kubectl delete svc tensorflow-ps-service-${cluster_name}-${ps_number_end}" >> ./template/delete_all_${cluster_name}.sh
 
     ps_number_end=$(expr $ps_number_end + 1)
     i=$(expr $i + 1)
 done
 
 #--------------------------------------------------------------------------------#
-##配置worker
+##配置worker的yaml文件
 wk_number_end=${ps_number_end}
 i=0
 while [ `echo "${i} < ${wk_number}" | bc` -eq 1 ]
@@ -140,10 +142,12 @@ do
     # config wk service
     cp ./template/wk_service.yaml ./template/wk_service${wk_number_end}.yaml
     sed -i 's/{{wk_service_index}}/'$wk_number_end'/' ./template/wk_service${wk_number_end}.yaml
+    sed -i 's/{{cluster_name}}/'$cluster_name'/' ./template/wk_service${wk_number_end}.yaml
+
     mv ./template/wk_service${wk_number_end}.yaml ./jobs/${cluster_name}
 
     # config delete wk service
-    echo "kubectl delete svc tensorflow-wk-service${wk_number_end}" >> ./template/delete_all_${cluster_name}.sh
+    echo "kubectl delete svc tensorflow-wk-service-${cluster_name}-${wk_number_end}" >> ./template/delete_all_${cluster_name}.sh
 
     wk_number_end=$(expr $wk_number_end + 1)
     i=$(expr $i + 1)

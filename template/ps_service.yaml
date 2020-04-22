@@ -2,13 +2,13 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    name: tensorflow-ps{{ps_service_index}}
+    name: tensorflow-ps-{{cluster_name}}-{{ps_service_index}}
     role: ps
-  name: tensorflow-ps-service{{ps_service_index}}
+  name: tensorflow-ps-service-{{cluster_name}}-{{ps_service_index}}
 spec:
   ports:
     - port: 2222
       targetPort: 2222
   selector:
-    name: tensorflow-ps{{ps_service_index}}
+    name: tensorflow-ps-{{cluster_name}}-{{ps_service_index}}
     role: ps

@@ -21,7 +21,7 @@ from schedule import tf_cluster_dir
 from shared_memory import shared_memory
 from utils import get_resources_list
 
-training_dir = "/root/nfsFile/"
+nfs_dir = "/root/nfsFile/"
 
 # 所有的资源（物理主机的资源）和pod的占用资源都是两个资源的加权和，都这么计算
 cpu_ratio = 1.0
@@ -55,10 +55,10 @@ def schedule_tf():
     while True:
         node_allocatable_resources = load_node_allocatable_resources(load_node_available_resources(), load_exist_pod_resources_request())
         to_be_scheduled_queue = get_to_be_scheduled_queue()
-        
+
         # 有排队的tf集群队列
         if to_be_scheduled_queue:
-            print(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())), "to_be_scheduled_queue:", len(to_be_scheduled_queue))
+            print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())), "to_be_scheduled_queue:", len(to_be_scheduled_queue))
             top = to_be_scheduled_queue[0]
             determination = determine_schedule_queued_tf(node_allocatable_resources, top["pods_requests"])
             if determination:
@@ -69,15 +69,16 @@ def schedule_tf():
                 # 调度完成将原来排队队列中的tf的删除
                 del (to_be_scheduled_queue[0])
                 shared_memory.set("to_be_scheduled_queue", to_be_scheduled_queue)
-        # 周期是5秒
-        time.sleep(5)
+        # 周期是10秒
+        time.sleep(10)
 
 
 # 删除训练运行完的ps和wk，腾出集群的可用资源，并删除训练的文件夹
 def delete_finished_job_pods():
     while True:
+        ## 保存所有已完成的job
         all_finished_jobs = set()
-        for file_str in os.listdir(training_dir):
+        for file_str in os.listdir(nfs_dir):
             if "finish" in file_str:
                 all_finished_jobs.add(file_str)
         print "all_finished_jobs =", all_finished_jobs
@@ -88,7 +89,7 @@ def delete_finished_job_pods():
             # 记录已经完成任务的文件
             finished_tf_wks = []
 
-            # 匹配
+            # 匹配，如果某个tf集群的所有job均已完成，将该tf集群的所有pod文件加入到finished_tf_wks
             for pod_file in os.listdir(pod_file_dir):
                 # todo:这里的文件名直接在程序中写死，找到比如"wk_pod23.yaml"的文件
                 if "wk_pod" in pod_file and ".yaml" in pod_file:
@@ -102,41 +103,36 @@ def delete_finished_job_pods():
                         finished_tf_wks.append(pod_file)
 
             ######################################################-------------------------------------------------##################################################
-            # is_running_state = True        # fixme: to be deleted
+            # is_running_state = True
             ######################################################-------------------------------------------------##################################################
 
             # tf集群任务已经运行结束，可以执行删除工作：删除training_data文件夹，删除finish-tf-wk-1-2的标志文件，最后删除pod实体
             tf_code_dir_prefix = "distribute-ML-demo-master-"
             if not is_running_state:
-                ##删除已完成任务的文件和文件夹
-                for pod_file in os.listdir(pod_file_dir):
-                    if ".yaml" in pod_file and "pod" in pod_file:
-                        if "ps_pod" in pod_file:
-                            #删除training_data文件夹
-                            tf_code_dir = training_dir + tf_code_dir_prefix + cluster_name
-                            if (os.path.exists(tf_code_dir)):
-                                os.system("rm -rf " + tf_code_dir)
+                ## 删除training_data文件夹
+                tf_code_dir = nfs_dir + tf_code_dir_prefix + cluster_name
+                if (os.path.exists(tf_code_dir)):
+                    os.system("rm -rf " + tf_code_dir)
 
-                            #删除结束标志文件
-                            for file in finished_tf_wks:
-                                print "需要删除的无用文件为:", training_dir + file + "*"
+                ## 删除结束标志文件
+                for file in finished_tf_wks:
+                    print "需要删除的无用文件为:", nfs_dir + file
+                    #执行成功返回0
+                    if os.system("rm -f " + nfs_dir + file):
+                        logging.error("delete file " + nfs_dir + file + " failed!!!")
+                    else:
+                        all_finished_jobs.remove(file)
 
-                                #执行成功返回0
-                                if os.system("rm -f " + training_dir + file + "*"):
-                                    logging.error("delete file " + training_dir + file + " failed!!!")
-                                else:
-                                    all_finished_jobs.remove(file)
+                print "更新all_finished_jobs =", all_finished_jobs
 
-                            print "更新all_finished_jobs =", all_finished_jobs
-
-                ##删除已完成任务的pod
+                ## 删除已完成任务的pod
                 for pod_file in os.listdir(pod_file_dir):
                     if ".yaml" in pod_file:
                         sys_ret = os.system("kubectl delete -f " + pod_file_dir + "/" + pod_file)
                         if sys_ret:
                             logging.error(pod_file + " 删除失败!!!")
-        #每5s扫描一次
-        time.sleep(5)
+        # 每10s扫描一次
+        time.sleep(10)
 
 
 # 一个线程用于清理垃圾数据，一个线程用于监控是否可以进行重调度

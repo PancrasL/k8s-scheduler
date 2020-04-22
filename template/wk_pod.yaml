@@ -6,7 +6,7 @@ spec:
   template:
     metadata:
       labels:
-        name: tensorflow-worker{{wk_pod_index}}
+        name: tensorflow-worker-{{cluster_name}}-{{wk_pod_index}}
         role: worker
     spec:
       containers:
@@ -25,7 +25,7 @@ spec:
         args: ["
 cd /mnt/;
 {{change_workspace_to_shared_folder}}
-sleep 2;
+sleep 8;
 ls;
 {{python_codeblock_template}}
 echo finish;

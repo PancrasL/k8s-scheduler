@@ -6,7 +6,7 @@ spec:
   template:
     metadata:
       labels:
-        name: tensorflow-ps{{ps_pod_index}}
+        name: tensorflow-ps-{{cluster_name}}-{{ps_pod_index}}
         role: ps
     spec:
       containers:
@@ -23,8 +23,8 @@ spec:
         - containerPort: 2222
         command: ["/bin/sh", "-c"]
         args: ["
-cd /mnt/;
 {{ps_change_workplace_to_shared_folder}}
+sleep 4;
 ls;
 {{python_codeblock_template}}
                "]
