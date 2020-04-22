@@ -135,9 +135,11 @@ if __name__ == '__main__':
     #lock.finish_schedule()
     argvs = sys.argv
     pprint(argvs)
-
-    cluster_name = "local-test"
-    schedule_model = "suitable"
+    if len(argvs) == 3:
+        cluster_name = argvs[1]
+        schedule_model = argvs[2]
+    else:
+        exit()
 
     tf_job_dir = tf_cluster_dir + cluster_name + '/'
 
@@ -151,7 +153,6 @@ if __name__ == '__main__':
     pod_request_resources_list, node_allocatable_resources_list = get_resources_list(pod_to_be_scheduled, node_allocatable_resources)
     hashtable = {}
     determination = determine_schedule_or_not(0, pod_request_resources_list, node_allocatable_resources_list, hashtable)
-    #determination = False
     # 执行调度
     if determination:
         schedule(schedule_model)

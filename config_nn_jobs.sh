@@ -84,6 +84,14 @@ do
     # config tf ps
     python_codeblock_temp=$python_codeblock" --job_name=ps --task_index=${i} 1>ps_log_${i} 2>ps_errlog_${i};"
     sed -i 's/{{python_codeblock_template}}/'"$python_codeblock_temp"'/' ./template/ps_pod${ps_number_end}.yaml
+    # config shared folder
+    ps_change_workplace_to_shared_folder=""
+    if [ ${ps_number_end} -eq ${start_number} ]; then 
+        ps_change_workplace_to_shared_folder="if [ ! -d '/mnt/distribute-ML-demo-master-$cluster_name/' ]; then curl ftp://192.168.0.10/distribute-ML-code.zip > qw.zip; unzip qw.zip; mv ./distribute-ML-code/ ./distribute-ML-demo-master-$cluster_name/;mv ./distribute-ML-demo-master-$cluster_name/ /mnt/;cd /mnt/distribute-ML-demo-master-$cluster_name/; else cd /mnt/distribute-ML-demo-master-$cluster_name/; fi;"
+    else
+        ps_change_workplace_to_shared_folder="while [ ! -d './distribute-ML-demo-master-$cluster_name/' ]; do sleep 1; done; cd ./distribute-ML-demo-master-$cluster_name/;"
+    fi
+    sed -i 's|{{ps_change_workplace_to_shared_folder}}|'"$ps_change_workplace_to_shared_folder"'|' ./template/ps_pod${ps_number_end}.yaml
 
     mv ./template/ps_pod${ps_number_end}.yaml ./jobs/${cluster_name}
 
@@ -94,6 +102,8 @@ do
     cp ./template/ps_service.yaml ./template/ps_service${ps_number_end}.yaml
     sed -i 's/{{ps_service_index}}/'$ps_number_end'/' ./template/ps_service${ps_number_end}.yaml
     mv ./template/ps_service${ps_number_end}.yaml ./jobs/${cluster_name}
+
+    
 
     # config delete ps service
     echo "kubectl delete svc tensorflow-ps-service${ps_number_end}" >> ./template/delete_all_${cluster_name}.sh
@@ -120,7 +130,6 @@ do
 
     # config wk's workspace, fixme: if there exists many ps servers, then the first ps downloads and creates the shared folder, other ps servers and workers just change workspace to the shared folder 
     change_workspace_to_shared_folder_cmd="while [ ! -d './distribute-ML-demo-master-$cluster_name/' ]; do sleep 1; done; cd ./distribute-ML-demo-master-$cluster_name/;"
-    #change_workspace_to_shared_folder_cmd="cd ./distribute-ML-demo-master-$start_number/;"
     sed -i 's|{{change_workspace_to_shared_folder}}|'"$change_workspace_to_shared_folder_cmd"'|' ./template/wk_pod${wk_number_end}.yaml
 
     mv ./template/wk_pod${wk_number_end}.yaml ./jobs/${cluster_name}
