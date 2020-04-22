@@ -25,7 +25,7 @@ spec:
         args: ["
 cd /mnt/;
 {{change_workspace_to_shared_folder}}
-{{python_file_exist}}
+{{python_file_exists}}
 ls;
 {{python_codeblock_template}}
 echo finish;

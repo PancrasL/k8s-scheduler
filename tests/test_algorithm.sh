@@ -22,5 +22,5 @@ sh ./config_nn_jobs.sh 0 3 1 2222 test4 dnn3.py
 python schedule.py test4 suitable
 
 # ps: 2  worker: 5
-sh ./config_nn_jobs.sh 0 7 2 2222 test4 dnn3.py 
-python schedule.py test4 suitable
+sh ./config_nn_jobs.sh 0 7 2 2222 test5 dnn3.py 
+python schedule.py test5 suitable
