@@ -1,0 +1,182 @@
+the start number: 0
+the end number: 8
+the ps number: 3
+the wk number: 6
+the pod_container_port: 2222
+create the new tf job folder: test1
+['schedule.py', 'test1', 'suitable']
+coefficient =  {'cpu': 1.3964750000000001, 'memory': 1.4998693822085314}
+pod_to_be_scheduled_list = ['tf-ps-test1-2', 'tf-ps-test1-1', 'tf-ps-test1-0', 'tf-wk-test1-8', 'tf-wk-test1-3', 'tf-wk-test1-5', 'tf-wk-test1-4', 'tf-wk-test1-7', 'tf-wk-test1-6']
+all_pods_cpu_request:
+6444.798510535455
+all_pods_memory_request:
+6000522516.665856
+node_allocatable_resources:
+{'k8s-nod1': {'cpu': 2000.0, 'memory': 2065936384.0},
+ 'k8s-nod2': {'cpu': 4000.0, 'memory': 4112261120.0},
+ 'k8s-nod3': {'cpu': 6000.0, 'memory': 6226186240.0},
+ 'k8s-nod4': {'cpu': 4000.0, 'memory': 4112252928.0},
+ 'k8s-nod5': {'cpu': 4000.0, 'memory': 4112252928.0}}
+abundant_resource_node:
+{}
+all_pods_cpu_request:
+5728.709787142627
+all_pods_memory_request:
+5333797792.591872
+node_allocatable_resources:
+{'k8s-nod1': {'cpu': 2000.0, 'memory': 2065936384.0},
+ 'k8s-nod2': {'cpu': 4000.0, 'memory': 4112261120.0},
+ 'k8s-nod3': {'cpu': 6000.0, 'memory': 6226186240.0},
+ 'k8s-nod4': {'cpu': 4000.0, 'memory': 4112252928.0},
+ 'k8s-nod5': {'cpu': 4000.0, 'memory': 4112252928.0}}
+abundant_resource_node:
+{'k8s-nod3': {'remain_cpu': 271.29021285737326,
+              'remain_memory': 892388447.4081278}}
+resource_delta = [('k8s-nod3', {'remain_memory': 892388447.4081278, 'remain_cpu': 271.29021285737326})]
+pod_packer = ['tf-ps-test1-2', 'tf-ps-test1-1', 'tf-ps-test1-0', 'tf-wk-test1-8', 'tf-wk-test1-3', 'tf-wk-test1-5', 'tf-wk-test1-4', 'tf-wk-test1-7']
+dest_node = k8s-nod3
+pod_packer = ['tf-wk-test1-6']
+pod_to_be_scheduled_list= ['tf-wk-test1-6']
+all_pods_cpu_request:
+716.0887233928283
+all_pods_memory_request:
+666724724.073984
+node_allocatable_resources:
+{'k8s-nod1': {'cpu': 2000.0, 'memory': 2065936384.0},
+ 'k8s-nod2': {'cpu': 4000.0, 'memory': 4112261120.0},
+ 'k8s-nod3': {'cpu': 271.2902128573742, 'memory': 892388447.408127},
+ 'k8s-nod4': {'cpu': 4000.0, 'memory': 4112252928.0},
+ 'k8s-nod5': {'cpu': 4000.0, 'memory': 4112252928.0}}
+abundant_resource_node:
+{'k8s-nod1': {'remain_cpu': 1283.9112766071717,
+              'remain_memory': 1399211659.9260159},
+ 'k8s-nod2': {'remain_cpu': 3283.9112766071717,
+              'remain_memory': 3445536395.926016},
+ 'k8s-nod4': {'remain_cpu': 3283.9112766071717,
+              'remain_memory': 3445528203.926016},
+ 'k8s-nod5': {'remain_cpu': 3283.9112766071717,
+              'remain_memory': 3445528203.926016}}
+resource_delta = [('k8s-nod1', 0.3985320742135594), ('k8s-nod4', 0.999998811215576), ('k8s-nod5', 0.999998811215576), ('k8s-nod2', 1.0)]
+pod_packer = ['tf-wk-test1-6']
+dest_node = k8s-nod1
+pod_packer = []
+pod_to_be_scheduled_list= []
+Done......
+the start number: 0
+the end number: 8
+the ps number: 3
+the wk number: 6
+the pod_container_port: 2222
+create the new tf job folder: test2
+['schedule.py', 'test2', 'suitable']
+coefficient =  {'cpu': 1.3964750000000001, 'memory': 1.4998693822085314}
+pod_to_be_scheduled_list = ['tf-ps-test2-0', 'tf-ps-test2-1', 'tf-ps-test2-2', 'tf-wk-test2-3', 'tf-wk-test2-6', 'tf-wk-test2-7', 'tf-wk-test2-4', 'tf-wk-test2-5', 'tf-wk-test2-8']
+all_pods_cpu_request:
+6444.798510535455
+all_pods_memory_request:
+6000522516.665856
+node_allocatable_resources:
+{'k8s-nod1': {'cpu': 1284.0, 'memory': 1349936384.0},
+ 'k8s-nod2': {'cpu': 4000.0, 'memory': 4112261120.0},
+ 'k8s-nod3': {'cpu': 272.0, 'memory': 498186240.0},
+ 'k8s-nod4': {'cpu': 4000.0, 'memory': 4112252928.0},
+ 'k8s-nod5': {'cpu': 4000.0, 'memory': 4112252928.0}}
+abundant_resource_node:
+{}
+all_pods_cpu_request:
+5728.709787142627
+all_pods_memory_request:
+5333797792.591872
+node_allocatable_resources:
+{'k8s-nod1': {'cpu': 1284.0, 'memory': 1349936384.0},
+ 'k8s-nod2': {'cpu': 4000.0, 'memory': 4112261120.0},
+ 'k8s-nod3': {'cpu': 272.0, 'memory': 498186240.0},
+ 'k8s-nod4': {'cpu': 4000.0, 'memory': 4112252928.0},
+ 'k8s-nod5': {'cpu': 4000.0, 'memory': 4112252928.0}}
+abundant_resource_node:
+{}
+all_pods_cpu_request:
+5012.621063749799
+all_pods_memory_request:
+4667073068.517888
+node_allocatable_resources:
+{'k8s-nod1': {'cpu': 1284.0, 'memory': 1349936384.0},
+ 'k8s-nod2': {'cpu': 4000.0, 'memory': 4112261120.0},
+ 'k8s-nod3': {'cpu': 272.0, 'memory': 498186240.0},
+ 'k8s-nod4': {'cpu': 4000.0, 'memory': 4112252928.0},
+ 'k8s-nod5': {'cpu': 4000.0, 'memory': 4112252928.0}}
+abundant_resource_node:
+{}
+all_pods_cpu_request:
+4296.53234035697
+all_pods_memory_request:
+4000348344.4439044
+node_allocatable_resources:
+{'k8s-nod1': {'cpu': 1284.0, 'memory': 1349936384.0},
+ 'k8s-nod2': {'cpu': 4000.0, 'memory': 4112261120.0},
+ 'k8s-nod3': {'cpu': 272.0, 'memory': 498186240.0},
+ 'k8s-nod4': {'cpu': 4000.0, 'memory': 4112252928.0},
+ 'k8s-nod5': {'cpu': 4000.0, 'memory': 4112252928.0}}
+abundant_resource_node:
+{}
+all_pods_cpu_request:
+3580.4436169641417
+all_pods_memory_request:
+3333623620.3699203
+node_allocatable_resources:
+{'k8s-nod1': {'cpu': 1284.0, 'memory': 1349936384.0},
+ 'k8s-nod2': {'cpu': 4000.0, 'memory': 4112261120.0},
+ 'k8s-nod3': {'cpu': 272.0, 'memory': 498186240.0},
+ 'k8s-nod4': {'cpu': 4000.0, 'memory': 4112252928.0},
+ 'k8s-nod5': {'cpu': 4000.0, 'memory': 4112252928.0}}
+abundant_resource_node:
+{'k8s-nod2': {'remain_cpu': 419.5563830358583,
+              'remain_memory': 778637499.6300797},
+ 'k8s-nod4': {'remain_cpu': 419.5563830358583,
+              'remain_memory': 778629307.6300797},
+ 'k8s-nod5': {'remain_cpu': 419.5563830358583,
+              'remain_memory': 778629307.6300797}}
+resource_delta = [('k8s-nod4', 0.9999947395289824), ('k8s-nod5', 0.9999947395289824), ('k8s-nod2', 1.0)]
+pod_packer = ['tf-ps-test2-0', 'tf-ps-test2-1', 'tf-ps-test2-2', 'tf-wk-test2-3', 'tf-wk-test2-6']
+dest_node = k8s-nod4
+pod_packer = ['tf-wk-test2-7', 'tf-wk-test2-4', 'tf-wk-test2-5', 'tf-wk-test2-8']
+pod_to_be_scheduled_list= ['tf-wk-test2-7', 'tf-wk-test2-4', 'tf-wk-test2-5', 'tf-wk-test2-8']
+all_pods_cpu_request:
+2864.3548935713134
+all_pods_memory_request:
+2666898896.295936
+node_allocatable_resources:
+{'k8s-nod1': {'cpu': 1284.0, 'memory': 1349936384.0},
+ 'k8s-nod2': {'cpu': 4000.0, 'memory': 4112261120.0},
+ 'k8s-nod3': {'cpu': 272.0, 'memory': 498186240.0},
+ 'k8s-nod4': {'cpu': 419.5563830358583, 'memory': 778629307.6300794},
+ 'k8s-nod5': {'cpu': 4000.0, 'memory': 4112252928.0}}
+abundant_resource_node:
+{'k8s-nod2': {'remain_cpu': 1135.6451064286866,
+              'remain_memory': 1445362223.704064},
+ 'k8s-nod5': {'remain_cpu': 1135.6451064286866,
+              'remain_memory': 1445354031.704064}}
+resource_delta = [('k8s-nod5', 0.9999971661083065), ('k8s-nod2', 1.0)]
+pod_packer = ['tf-wk-test2-7', 'tf-wk-test2-4', 'tf-wk-test2-5', 'tf-wk-test2-8']
+dest_node = k8s-nod5
+pod_packer = []
+pod_to_be_scheduled_list= []
+Done......
+the start number: 0
+the end number: 8
+the ps number: 3
+the wk number: 6
+the pod_container_port: 2222
+create the new tf job folder: test3
+['schedule.py', 'test3', 'suitable']
+coefficient =  {'cpu': 1.3964750000000001, 'memory': 1.4998693822085314}
+('Add to to be scheduled queue:', '/root/my_scheduler/jobs/test3/')
+the start number: 0
+the end number: 8
+the ps number: 3
+the wk number: 6
+the pod_container_port: 2222
+create the new tf job folder: test4
+['schedule.py', 'test4', 'suitable']
+coefficient =  {'cpu': 1.3964750000000001, 'memory': 1.4998693822085314}
+('Add to to be scheduled queue:', '/root/my_scheduler/jobs/test4/')

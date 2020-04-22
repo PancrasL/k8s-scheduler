@@ -14,17 +14,17 @@ spec:
         image: tensorflow/tensorflow:1.1.0
         resources:
           requests:
-            memory: "800M"
-            cpu: "800m"
+            memory: "1000M"
+            cpu: "1000m"
           limits:
-            memory: "800M"
-            cpu: "800m"
+            memory: "1000M"
+            cpu: "1000m"
         ports:
         - containerPort: 2222
         command: ["/bin/sh", "-c"]
         args: ["
 {{ps_change_workplace_to_shared_folder}}
-sleep 4;
+{{python_file_exist}}
 ls;
 {{python_codeblock_template}}
                "]

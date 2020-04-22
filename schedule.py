@@ -2,7 +2,6 @@
 
 import sys, time
 import logging
-import subprocess
 
 # 调度器的其他模块
 import resource
@@ -37,38 +36,6 @@ services_meta_data = {}
 node_utilization = {}
 
 
-#超卖
-def overSale():
-    global node_available_resources
-    global node_utilization
-
-    ret = subprocess.Popen("kubectl top node", shell=True, stdout=subprocess.PIPE)
-    out = ret.stdout.readlines()
-    out = out[1:]
-
-    #获取节点资源使用率
-    #超卖系数=(1-资源使用率)/2  资源使用率<80%
-    #        =1                 资源使用率>=80%
-    for line in out:
-        resource_utilization = {"cpu_usage": 0, "cpu_utilization": 0, "memory_usage": 0, "memory_utilization": 0}  #单位分别为m, %, Mi, %
-        splitLine = line.split()
-        resource_utilization["cpu_usage"] = float(splitLine[1][:-1])
-        resource_utilization["cpu_utilization"] = float(splitLine[2][:-1])
-        resource_utilization["cpu_resource_coefficient"] = float((100 - resource_utilization["cpu_utilization"]) / 200) + 1
-
-        resource_utilization["memory_usage"] = float(splitLine[3][:-2])
-        resource_utilization["memory_utilization"] = float(splitLine[4][:-1])
-        resource_utilization["memory_resource_coefficient"] = float((100 - resource_utilization["memory_utilization"]) / 200) + 1
-        node_utilization[splitLine[0]] = resource_utilization
-
-    for node in node_utilization:
-        if node in node_available_resources:
-            if (node_utilization[node]["cpu_utilization"] < 80):
-                node_available_resources[node]["cpu"] = node_utilization[node]["cpu_resource_coefficient"] * node_available_resources[node]["cpu"]
-            if (node_utilization[node]["memory_utilization"] < 80):
-                node_available_resources[node][
-                    "memory"] = node_utilization[node]["memory_resource_coefficient"] * node_available_resources[node]["memory"]
-    pprint(node_available_resources)
 
 
 #加载集群信息
@@ -85,11 +52,7 @@ def load_cluster_status():
 
     # 获取集群内所有的nodes总资源量
     node_available_resources = resource.load_node_available_resources()
-    # pprint(node_available_resources)
-
-    # 超卖
-    overSale()
-
+    
     # 扣除已分配的资源，计算剩余可分配资源
     node_allocatable_resources = resource.load_node_allocatable_resources(node_available_resources, exist_pod_resources_request)
     # pprint(node_allocatable_resources)
@@ -108,7 +71,7 @@ def schedule(schedule_model):
         greedy_schedule()
     elif schedule_model == "suitable":
         deploy_services(services_meta_data)
-        most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be_scheduled, node_utilization)
+        most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be_scheduled)
     else:
         logging.error("unsupported schedule model!! Supported model: 'kubernetes' 'suitable' 'greedy'")
 
@@ -132,7 +95,7 @@ def add_to_reschedule_queue(schedule_model, yaml_file_path):
 
 
 if __name__ == '__main__':
-    #lock.finish_schedule()
+    lock.finish_schedule()
     argvs = sys.argv
     pprint(argvs)
     if len(argvs) == 3:
@@ -140,7 +103,8 @@ if __name__ == '__main__':
         schedule_model = argvs[2]
     else:
         exit()
-
+    # cluster_name = "test1"
+    # schedule_model = "suitable"
     tf_job_dir = tf_cluster_dir + cluster_name + '/'
 
     # 加锁
@@ -148,6 +112,10 @@ if __name__ == '__main__':
 
     # 加载集群状态
     load_cluster_status()
+
+    #超卖
+    if schedule_model != "kubernetes":
+        resource.overSale(pods_meta_data, pod_to_be_scheduled, node_available_resources)
 
     # 判断当前集群能否容纳待调度的tf集群
     pod_request_resources_list, node_allocatable_resources_list = get_resources_list(pod_to_be_scheduled, node_allocatable_resources)
@@ -158,6 +126,5 @@ if __name__ == '__main__':
         schedule(schedule_model)
     else:
         add_to_reschedule_queue(schedule_model, tf_job_dir)
-    time.sleep(5)
     # 解锁
     lock.finish_schedule()

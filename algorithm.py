@@ -3,6 +3,7 @@
 import copy, sys, os
 import yaml
 import logging
+from pprint import pprint
 from kubernetes import config, client
 
 from utils import convert_resource_unit
@@ -32,7 +33,7 @@ def determine_schedule_or_not(kth, pod_request_resources_list, node_allocatable_
 
 
 #最适资源调度策略
-def most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be_scheduled, node_utilization):
+def most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be_scheduled):
     #todo: need a better way to deal with pod_max_cpu=0 or pod_max_memory=0,because they are divisor
     pod_max_cpu = 0.000001
     pod_max_memory = 0.000001
@@ -73,25 +74,31 @@ def most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be
     pod_packer = copy.deepcopy(pod_to_be_scheduled_list)
     #schedule method
     while pod_to_be_scheduled_list:
-        remain_pod_cpu_request = 0
-        remain_pod_memory_request = 0
+        all_pods_cpu_request = 0
+        all_pods_memory_request = 0
         abundant_resource_node = {}
 
         # remain pods' resources request
         for pod in pod_packer:
-            remain_pod_cpu_request += pod_to_be_scheduled[pod]["resources"]["cpu_request"]
-            remain_pod_memory_request += pod_to_be_scheduled[pod]["resources"]["memory_request"]
+            all_pods_cpu_request += pod_to_be_scheduled[pod]["resources"]["cpu_request"]
+            all_pods_memory_request += pod_to_be_scheduled[pod]["resources"]["memory_request"]
         #筛选出资源充足的node
         for node in node_allocatable_resources:
-            if remain_pod_cpu_request <= node_allocatable_resources[node]["cpu"] and remain_pod_memory_request <= node_allocatable_resources[node][
+            if all_pods_cpu_request <= node_allocatable_resources[node]["cpu"] and all_pods_memory_request <= node_allocatable_resources[node][
                     "memory"]:
                 abundant_resource_node[node] = {
-                    "remain_cpu": node_allocatable_resources[node]["cpu"] - remain_pod_cpu_request,
-                    "remain_memory": node_allocatable_resources[node]["memory"] - remain_pod_memory_request
+                    "remain_cpu": node_allocatable_resources[node]["cpu"] - all_pods_cpu_request,
+                    "remain_memory": node_allocatable_resources[node]["memory"] - all_pods_memory_request
                 }
 
-        print "node_allocatable_resources =", node_allocatable_resources
-        print "abundant_resource_node =", abundant_resource_node
+        print "all_pods_cpu_request:"
+        pprint(all_pods_cpu_request)
+        print "all_pods_memory_request:"
+        pprint(all_pods_memory_request)
+        print "node_allocatable_resources:"
+        pprint(node_allocatable_resources)
+        print "abundant_resource_node:"
+        pprint(abundant_resource_node)
 
         if abundant_resource_node:
             #todo: need a better way to deal with max_abundant_cpu=0 or max_abundant_memory=0,because they are divisor
@@ -125,7 +132,7 @@ def most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be
 
             # python's magic，浅拷贝
             for pod in pod_packer[:]:
-                binding_pod_to_node(dest_node, pods_meta_data[pod], node_utilization[dest_node])
+                binding_pod_to_node(dest_node, pods_meta_data[pod])
                 node_allocatable_resources[dest_node]["cpu"] -= pod_to_be_scheduled[pod]["resources"]["cpu_request"]
                 node_allocatable_resources[dest_node]["memory"] -= pod_to_be_scheduled[pod]["resources"]["memory_request"]
                 pod_to_be_scheduled_list.remove(pod)
@@ -176,17 +183,14 @@ def deploy_services(services_meta_data):
         except Exception, e:
             pass
 
+
 # 将pod 调度到node上面，执行绑定过程
-def binding_pod_to_node(node_name, pod_meta_data, resource_utilization = None):
+def binding_pod_to_node(node_name, pod_meta_data):
     #config.load_kube_config("/root/.kube/config")
     #注意创建job对应的版本是BatchV1Api
     api_instance = client.BatchV1Api()
     #这里对于pod_meta_data不加上global，此处相当于在yaml文件中加入nodeName，指定调度到哪个节点
     pod_meta_data["spec"]["template"]["spec"]["nodeName"] = node_name
-
-    #修改pod的request
-    if resource_utilization:
-        change_pod_request(pod_meta_data, resource_utilization)
 
     resp = api_instance.create_namespaced_job(body=pod_meta_data, namespace="default")
 
@@ -196,14 +200,5 @@ def binding_pod_to_node(node_name, pod_meta_data, resource_utilization = None):
         resp = api_instance.read_namespaced_job(name=pod_meta_data["metadata"]["name"], namespace='default')
         if resp.status.active == 1:
             break
-    print("Job created. status='%s'" % str(resp.status))
 
-def change_pod_request(pod_meta_data, resource_utilization):
-    for container in pod_meta_data["spec"]["template"]["spec"]["containers"]:
-        new_cpu_requests = float(convert_resource_unit("cpu", container["resources"]["requests"]["cpu"])) / resource_utilization["cpu_resource_coefficient"]
-        new_cpu_requests_str = str(int(new_cpu_requests))
-        container["resources"]["requests"]["cpu"] = new_cpu_requests_str + "m"
-
-        new_memory_requests = float(convert_resource_unit("memory", container["resources"]["requests"]["memory"])) / resource_utilization["memory_resource_coefficient"]
-        new_memory_requests_str = str(int(new_memory_requests)/1000000)#单位转化为M
-        container["resources"]["requests"]["memory"] = new_cpu_requests_str + "M"
+    #print("Job created. status='%s'" % str(resp.status))

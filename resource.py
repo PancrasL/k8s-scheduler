@@ -1,6 +1,6 @@
 # coding:utf-8
 
-import os, yaml, logging, copy
+import os, yaml, logging, copy, subprocess
 
 from kubernetes import config, client
 from utils import convert_resource_unit
@@ -15,17 +15,17 @@ def load_exist_pod_resources_request():
     ret_pods = api_core_v1.list_pod_for_all_namespaces(watch=False)
     for item in ret_pods.items:
         # 正常运行的pod
-        if item.status.phase == "Running" :
+        if item.status.phase == "Running" or item.status.phase == "Pending":
             # 一个pod中的多个container是被封装成了一个list列表，需要遍历列表获取各个container的需要的资源
             all_container_in_pod_requests = {"cpu_request": 0, "memory_request": 0}
             for container in item.spec.containers:
                 try:
-                    all_container_in_pod_requests["cpu_request"] += convert_resource_unit("cpu", container.resources.limits["cpu"])
+                    all_container_in_pod_requests["cpu_request"] += convert_resource_unit("cpu", container.resources.requests["cpu"])
                 # 处理container中不含有request的问题
                 except Exception, e:
                     pass
                 try:
-                    all_container_in_pod_requests["memory_request"] += convert_resource_unit("memory", container.resources.limits["memory"])
+                    all_container_in_pod_requests["memory_request"] += convert_resource_unit("memory", container.resources.requests["memory"])
                 # 处理container中不含有request的问题
                 except Exception, e:
                     pass
@@ -133,3 +133,62 @@ def load_pod_to_be_scheduled(yaml_dir, exist_pod_resources_request):
                         print "---An Exception happened!!!---", e, pod_meta_data
 
     return pod_to_be_scheduled, pods_meta_data, services_meta_data
+
+
+#超卖
+def overSale(pods_meta_data, pod_to_be_scheduled, node_available_resources):
+    #集群总资源量
+    cluster_total_resources = {"cpu": 0.0, "memory": 0.0}
+    #集群已使用资源量
+    cluster_used_resources = {"cpu": 0.0, "memory": 0.0}
+    #集群资源使用率
+    resource_utilization = {"cpu": 0.0, "memory": 0.0}
+    #集群超卖系数
+    over_sale_coefficient = {"cpu": 1.0, "memory": 1.0}
+
+    # 计算集群总资源量
+    for node in node_available_resources:
+        cluster_total_resources["cpu"] += node_available_resources[node]["cpu"]
+        cluster_total_resources["memory"] += node_available_resources[node]["memory"]
+
+    # 计算集群已使用资源量
+    ret = subprocess.Popen("kubectl top node", shell=True, stdout=subprocess.PIPE)
+    out = ret.stdout.readlines()
+    out = out[1:]
+    for line in out:
+        splitLine = line.split()
+        cluster_used_resources["cpu"] += float(splitLine[1][:-1])
+        cluster_used_resources["memory"] += float(splitLine[3][:-2]) * 1000  #转换为字节
+
+    # 计算集群资源使用率
+    resource_utilization["cpu"] = cluster_used_resources["cpu"] / cluster_total_resources["cpu"]
+    resource_utilization["memory"] = cluster_used_resources["memory"] / cluster_total_resources["memory"]
+
+    #计算集群超卖系数
+    #超卖系数=(1-资源使用率)/2  资源使用率<80%
+    #        =1                 资源使用率>=80%
+    if resource_utilization["cpu"] < 0.8:
+        over_sale_coefficient["cpu"] = 1 + (1 - resource_utilization["cpu"]) / 2
+    if resource_utilization["memory"] < 0.8:
+        over_sale_coefficient["memory"] = 1 + (1 - resource_utilization["memory"]) / 2
+
+    print "coefficient = ", over_sale_coefficient
+    # 修改pod的request
+    for pod in pods_meta_data:
+        change_pod_request(pods_meta_data[pod], over_sale_coefficient)
+    for pod in pod_to_be_scheduled:
+        pod_to_be_scheduled[pod]["resources"]["cpu_request"] = pod_to_be_scheduled[pod]["resources"]["cpu_request"]/over_sale_coefficient["cpu"]
+        pod_to_be_scheduled[pod]["resources"]["memory_request"] = pod_to_be_scheduled[pod]["resources"]["memory_request"]/over_sale_coefficient["memory"]
+
+
+def change_pod_request(pod_meta_data, over_sale_coefficient):
+    for container in pod_meta_data["spec"]["template"]["spec"]["containers"]:
+        new_cpu_requests = float(convert_resource_unit("cpu",
+                                                       container["resources"]["requests"]["cpu"])) / over_sale_coefficient["cpu"]
+        new_cpu_requests_str = str(int(new_cpu_requests))
+        container["resources"]["requests"]["cpu"] = new_cpu_requests_str + "m"
+
+        new_memory_requests = float(convert_resource_unit(
+            "memory", container["resources"]["requests"]["memory"])) / over_sale_coefficient["memory"]
+        new_memory_requests_str = str(int(new_memory_requests) / 1000000)  #单位转化为M
+        container["resources"]["requests"]["memory"] = new_cpu_requests_str + "M"

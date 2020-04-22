@@ -39,6 +39,7 @@ mkdir -p ./jobs/${cluster_name}
 #--------------------------------------------------------------------------------#
 ##添加ps的地址
 python_codeblock="python "$nn
+python_file_exist = "if [ ! -f "$nn" ]; then sleep 1; fi"
 j=0
 service_index=$start_number
 while [ $j -lt $ps_number ]
@@ -82,6 +83,7 @@ do
     cp ./template/ps_pod.yaml ./template/ps_pod${ps_number_end}.yaml
     sed -i 's/{{ps_pod_index}}/'$ps_number_end'/g' ./template/ps_pod${ps_number_end}.yaml
     sed -i 's/{{cluster_name}}/'$cluster_name'/g' ./template/ps_pod${ps_number_end}.yaml
+    sed -i 's/{{python_file_exist}}/'$python_file_exist'/g' ./template/ps_pod${ps_number_end}.yaml
     # config tf ps
     python_codeblock_temp=$python_codeblock" --job_name=ps --task_index=${i} 1>ps_log_${i} 2>ps_errlog_${i};"
     sed -i 's/{{python_codeblock_template}}/'"$python_codeblock_temp"'/' ./template/ps_pod${ps_number_end}.yaml
@@ -122,9 +124,9 @@ while [ `echo "${i} < ${wk_number}" | bc` -eq 1 ]
 do
     #config wk pod
     cp ./template/wk_pod.yaml ./template/wk_pod${wk_number_end}.yaml
-    # sed -i 's/{{job-id}}/'$jobid'/' ./template/wk_pod${wk_number_end}.yaml
     sed -i 's/{{wk_pod_index}}/'$wk_number_end'/' ./template/wk_pod${wk_number_end}.yaml
     sed -i 's/{{cluster_name}}/'$cluster_name'/g' ./template/wk_pod${wk_number_end}.yaml
+    sed -i 's/{{python_file_exist}}/'$python_file_exist'/g' ./template/wk_pod${wk_number_end}.yaml
 
     # config tf wk
     python_codeblock_temp=$python_codeblock" --job_name=worker --task_index=${i} 1>worker_log_${i} 2>worker_errlog_${i};"
