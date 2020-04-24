@@ -51,7 +51,7 @@ def load_node_available_resources():
 
     ret_nodes = api_core_v1.list_node(watch=False)
     for item in ret_nodes.items:
-        if item.metadata.name != "k8s-mst":
+        if item.metadata.name != "k8s-mst" and item.status.conditions[3].status == 'True':
             node_available_resources[item.metadata.name] = {
                 "cpu": convert_resource_unit("cpu", item.status.allocatable["cpu"]),
                 "memory": convert_resource_unit("memory", item.status.allocatable["memory"])

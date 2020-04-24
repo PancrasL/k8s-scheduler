@@ -59,6 +59,8 @@ def schedule_tf():
         # 有排队的tf集群队列
         if to_be_scheduled_queue:
             print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())), "to_be_scheduled_queue:", len(to_be_scheduled_queue))
+            for item in to_be_scheduled_queue:
+                print(item["cluster_name"])
             top = to_be_scheduled_queue[0]
             determination = determine_schedule_queued_tf(node_allocatable_resources, top["pods_requests"])
             if determination:
