@@ -1,6 +1,6 @@
 # coding:utf-8
 
-import sys, time
+import sys, time, copy
 import logging
 
 # 调度器的其他模块
@@ -32,9 +32,6 @@ pod_to_be_scheduled = {}
 pods_meta_data = {}
 # key: service_name value:meta_data
 services_meta_data = {}
-# key: node_name value: resource_utilization
-node_utilization = {}
-
 
 
 
@@ -68,7 +65,7 @@ def schedule(schedule_model):
         k8s_schedule(tf_cluster_dir + cluster_name + '/')
     elif schedule_model == "greedy":
         deploy_services(services_meta_data)
-        greedy_schedule()
+        greedy_schedule(pods_meta_data, node_allocatable_resources, pod_to_be_scheduled)
     elif schedule_model == "suitable":
         deploy_services(services_meta_data)
         most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be_scheduled)
@@ -95,7 +92,7 @@ def add_to_reschedule_queue(schedule_model, yaml_file_path):
 
 
 if __name__ == '__main__':
-    lock.finish_schedule()
+    #lock.finish_schedule()
     argvs = sys.argv
     pprint(argvs)
     if len(argvs) == 3:
@@ -114,7 +111,8 @@ if __name__ == '__main__':
     load_cluster_status()
 
     #超卖
-    if schedule_model != "kubernetes":
+    pod_to_be_scheduled_no_oversale = copy.deepcopy(pod_to_be_scheduled)
+    if schedule_model == "suitable":
         resource.overSale(pods_meta_data, pod_to_be_scheduled, node_available_resources)
 
     # 判断当前集群能否容纳待调度的tf集群
@@ -125,6 +123,7 @@ if __name__ == '__main__':
     if determination:
         schedule(schedule_model)
     else:
+        pod_to_be_scheduled = pod_to_be_scheduled_no_oversale
         add_to_reschedule_queue(schedule_model, tf_job_dir)
     # 解锁
     lock.finish_schedule()

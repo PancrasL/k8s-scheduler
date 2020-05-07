@@ -150,8 +150,53 @@ def most_suitable_schedule(pods_meta_data, node_allocatable_resources, pod_to_be
 
 
 #贪心调度策略
-def greedy_schedule():
-    return
+def greedy_schedule(pods_meta_data, node_allocatable_resources, pod_to_be_scheduled):
+    descending_sort_node_list=[]
+    pod_to_be_scheduled_list=[]
+    node_score={}
+    max_cpu=0
+    max_memory=0
+    #todo: the ratio shouldn't be this
+    cpu_ratio=0.5
+    memory_ratio=0.5
+
+    for node in node_allocatable_resources:
+        if node_allocatable_resources[node]["cpu"]>max_cpu: max_cpu=node_allocatable_resources[node]["cpu"]
+        if node_allocatable_resources[node]["memory"]>max_memory: max_memory=node_allocatable_resources[node]["memory"]
+    for node in node_allocatable_resources:
+        score=float(node_allocatable_resources[node]["cpu"])/max_cpu*cpu_ratio+float(node_allocatable_resources[node]["memory"])/max_memory*memory_ratio
+        node_score[node]=score
+    #给字典按照value排序
+    node_score=sorted(node_score.iteritems(), key=lambda dic:dic[1], reverse=True)
+
+
+    for pod_name in pod_to_be_scheduled:
+        if pod_name[:5]=="tf-ps":
+            pod_to_be_scheduled_list.insert(0, pod_name)
+        else:
+            pod_to_be_scheduled_list.append(pod_name)
+
+    for node_name in node_score:
+        descending_sort_node_list.append(node_name[0])
+
+    print "node_score=", node_score
+    print "pod_to_be_scheduled_list =", pod_to_be_scheduled_list
+    print "descending_sort_node_list=", descending_sort_node_list
+
+    #schedule method
+    while pod_to_be_scheduled_list:
+        pod_cpu_request = pod_to_be_scheduled[pod_to_be_scheduled_list[0]]["resources"]["cpu_request"]
+        node_allocatable_cpu = node_allocatable_resources[descending_sort_node_list[0]]["cpu"]
+        pod_memory_request = pod_to_be_scheduled[pod_to_be_scheduled_list[0]]["resources"]["memory_request"]
+        node_allocatable_memory = node_allocatable_resources[descending_sort_node_list[0]]["memory"]
+        if pod_cpu_request<=node_allocatable_cpu and pod_memory_request<=node_allocatable_memory:
+            binding_pod_to_node(descending_sort_node_list[0], pods_meta_data[pod_to_be_scheduled_list[0]])
+            node_allocatable_resources[descending_sort_node_list[0]]["cpu"]-=pod_cpu_request
+            node_allocatable_resources[descending_sort_node_list[0]]["memory"]-=pod_memory_request
+            del(pod_to_be_scheduled_list[0])
+        else:
+            del(descending_sort_node_list[0])
+    print "Done......"
 
 
 #k8s的默认调度策略

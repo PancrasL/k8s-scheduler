@@ -168,9 +168,9 @@ def overSale(pods_meta_data, pod_to_be_scheduled, node_available_resources):
     #超卖系数=(1-资源使用率)/2  资源使用率<80%
     #        =1                 资源使用率>=80%
     if resource_utilization["cpu"] < 0.8:
-        over_sale_coefficient["cpu"] = 1 + (1 - resource_utilization["cpu"]) / 2
+        over_sale_coefficient["cpu"] = 1 + (1 - resource_utilization["cpu"]) / 2 + 0.1
     if resource_utilization["memory"] < 0.8:
-        over_sale_coefficient["memory"] = 1 + (1 - resource_utilization["memory"]) / 2
+        over_sale_coefficient["memory"] = 1 + (1 - resource_utilization["memory"]) / 2 + 0.1
 
     print "coefficient = ", over_sale_coefficient
     # 修改pod的request
